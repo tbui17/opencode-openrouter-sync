@@ -51,7 +51,7 @@ function createDeps(overrides: Partial<SyncDeps> = {}): SyncDeps {
     readCache: mock(async () => null),
     writeCache: mock(async () => {}),
     isCacheValid: mock(() => false),
-    fetchModels: mock(async () => [createMockModel('test/model')]),
+    fetchModels: mock(async () => ({ data: [createMockModel('test/model')] })),
     updateModels: mock(async () => ({ added: 1, skipped: 0, removed: 0 })),
     ...overrides,
   };
@@ -77,7 +77,7 @@ describe('performSync', () => {
     const { ctx, logs } = createMockCtx();
     const models = [createMockModel('new/model')];
     const deps = createDeps({
-      fetchModels: mock(async () => models),
+      fetchModels: mock(async () => ({ data: models })),
       updateModels: mock(async () => ({ added: 1, skipped: 0, removed: 0 })),
     });
 
@@ -94,14 +94,14 @@ describe('performSync', () => {
   test('logs warning when fetch fails', async () => {
     const { ctx, logs } = createMockCtx();
     const deps = createDeps({
-      fetchModels: mock(async () => null),
+      fetchModels: mock(async () => ({ error: { type: 'network' as const, message: 'Network error' } })),
     });
 
     await performSync(ctx, deps);
 
     expect(deps.updateModels).not.toHaveBeenCalled();
     const messages = logs.map((l: any) => l.body?.message);
-    expect(messages).toContain('Failed to fetch models from OpenRouter API');
+    expect(messages.some((m: string) => m.includes('Failed to fetch models'))).toBe(true);
   });
 
   test('logs error when updateModels throws', async () => {
@@ -135,7 +135,7 @@ describe('performSync', () => {
     const { ctx } = createMockCtx();
     const writeCacheMock = mock(async () => {});
     const deps = createDeps({
-      fetchModels: mock(async () => null),
+      fetchModels: mock(async () => ({ error: { type: 'network' as const, message: 'Network error' } })),
       writeCache: writeCacheMock,
     });
 

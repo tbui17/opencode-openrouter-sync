@@ -5,7 +5,7 @@
  * to the global OpenCode configuration. It runs once per 24 hours on startup.
  */
 
-import type { PluginContext, CacheData, OpenRouterModel } from "./types.js";
+import type { PluginContext, CacheData, OpenRouterModel, FetchResult } from "./types.js";
 import { readCache, writeCache, isCacheValid } from "./cache.js";
 import { fetchModels } from "./api.js";
 import { updateModels } from "./config.js";
@@ -20,7 +20,7 @@ export interface SyncDeps {
   readCache: () => Promise<CacheData | null>;
   writeCache: (data: CacheData) => Promise<void>;
   isCacheValid: (data: CacheData | null, ttlMs: number) => boolean;
-  fetchModels: () => Promise<OpenRouterModel[] | null>;
+  fetchModels: () => Promise<FetchResult>;
   updateModels: (
     models: OpenRouterModel[],
     configPath?: string,
@@ -69,18 +69,20 @@ export async function performSync(
       },
     });
 
-    const models = await deps.fetchModels();
+    const modelsResult = await deps.fetchModels();
 
-    if (!models) {
+    if ('error' in modelsResult) {
       client.app.log({
         body: {
           service: SERVICE_NAME,
           level: "warn",
-          message: "Failed to fetch models from OpenRouter API",
+          message: `Failed to fetch models from OpenRouter API: ${modelsResult.error.message}`,
         },
       });
       return;
     }
+
+    const models = modelsResult.data;
 
     client.app.log({
       body: {

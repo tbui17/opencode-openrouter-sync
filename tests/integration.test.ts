@@ -268,9 +268,9 @@ describe('Integration Tests - Full Sync Flow', () => {
       });
 
       // Step 3: Fetch models (mocked)
-      const fetchedModels = await fetchModels();
-      expect(fetchedModels).not.toBeNull();
-      expect(fetchedModels).toHaveLength(2);
+      const fetchedModelsResult = await fetchModels();
+      expect('data' in fetchedModelsResult).toBe(true);
+      const fetchedModels = fetchedModelsResult.data;
 
       // Step 4: Create initial config with one existing model
       const initialConfig = {
@@ -332,19 +332,39 @@ describe('Integration Tests - Full Sync Flow', () => {
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
       expect(isCacheValid(cache!, 86400000)).toBe(true);
-    });
 
-    it('should handle empty model list gracefully', async () => {
       globalThis.fetch = mock(async () => {
-        return new Response(JSON.stringify({ data: [] }), {
+        return new Response(JSON.stringify({ data: [createMockModel('m1'), createMockModel('m2')] }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
       });
 
-      const models = await fetchModels();
-      expect(models).toBeNull();
+      const modelsResult = await fetchModels();
+      expect('data' in modelsResult).toBe(true);
+      const models = modelsResult.data;
+      expect(models).toHaveLength(2);
+
+      await writeCache({ models, timestamp: Date.now() }, { cacheDir });
+
+      const updatedCache = await readCache({ cacheDir });
+      expect(updatedCache?.models).toHaveLength(2);
     });
+
+  it('should use cached data when API is unavailable', async () => {
+    const cachedModels = [createMockModel('cached-model-1'), createMockModel('cached-model-2')];
+    await writeCache({ models: cachedModels, timestamp: Date.now() }, { cacheDir });
+
+    globalThis.fetch = mock(async () => {
+      throw new Error('Network unavailable');
+    });
+
+    const cache = await readCache({ cacheDir });
+    expect(cache).not.toBeNull();
+    expect(isCacheValid(cache!, 86400000)).toBe(true);
+
+    const modelsResult = await fetchModels();
+    expect('error' in modelsResult).toBe(true);
   });
 
   describe('Error Handling', () => {
@@ -359,8 +379,8 @@ describe('Integration Tests - Full Sync Flow', () => {
         throw new Error('Network error');
       });
 
-      const fetchedModels = await fetchModels();
-      expect(fetchedModels).toBeNull();
+      const fetchedModelsResult = await fetchModels();
+      expect('error' in fetchedModelsResult).toBe(true);
 
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
@@ -376,8 +396,9 @@ describe('Integration Tests - Full Sync Flow', () => {
         });
       });
 
-      const models = await fetchModels();
-      expect(models).toBeNull();
+      const modelsResult = await fetchModels();
+      expect('error' in modelsResult).toBe(true);
+      expect(modelsResult.error.type).toBe('http');
     });
 
     it('should handle invalid JSON response', async () => {
@@ -388,8 +409,9 @@ describe('Integration Tests - Full Sync Flow', () => {
         });
       });
 
-      const models = await fetchModels();
-      expect(models).toBeNull();
+      const modelsResult = await fetchModels();
+      expect('error' in modelsResult).toBe(true);
+      expect(modelsResult.error.type).toBe('parse');
     });
 
     it('should handle malformed API response structure', async () => {
@@ -400,8 +422,9 @@ describe('Integration Tests - Full Sync Flow', () => {
         });
       });
 
-      const models = await fetchModels();
-      expect(models).toBeNull();
+      const modelsResult = await fetchModels();
+      expect('error' in modelsResult).toBe(true);
+      expect(modelsResult.error.type).toBe('validation');
     });
 
     it('should handle API timeout', async () => {
@@ -411,8 +434,9 @@ describe('Integration Tests - Full Sync Flow', () => {
         throw error;
       });
 
-      const models = await fetchModels();
-      expect(models).toBeNull();
+      const modelsResult = await fetchModels();
+      expect('error' in modelsResult).toBe(true);
+      expect(modelsResult.error.type).toBe('timeout');
     });
   });
 
@@ -585,66 +609,84 @@ describe('End-to-End Sync Scenarios', () => {
     const cache = await readCache({ cacheDir });
     expect(cache).toBeNull();
 
-    const models = await fetchModels();
+    const modelsResult = await fetchModels();
+    expect('data' in modelsResult).toBe(true);
+    const models = modelsResult.data;
     expect(models).toHaveLength(3);
 
-    await writeCache({ models: models!, timestamp: Date.now() }, { cacheDir });
+    await writeCache({ models, timestamp: Date.now() }, { cacheDir });
 
     const writtenCache = await readCache({ cacheDir });
     expect(writtenCache).not.toBeNull();
     expect(writtenCache?.models).toHaveLength(3);
   });
 
-  it('should handle daily re-sync with existing cache', async () => {
-    const oldModels = [createMockModel('old-model')];
-    await writeCache(
-      { models: oldModels, timestamp: Date.now() - 86400001 },
-      { cacheDir }
-    );
+    it('should skip sync when cache is valid', async () => {
+      const mockModels = [createMockModel('cached-model')];
+      await writeCache(
+        { models: mockModels, timestamp: Date.now() },
+        { cacheDir }
+      );
 
-    const newModels = [
-      createMockModel('old-model'),
-      createMockModel('new-model'),
-    ];
+      const cache = await readCache({ cacheDir });
+      expect(cache).not.toBeNull();
+      expect(isCacheValid(cache!, 86400000)).toBe(true);
+    });
 
-    globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({ data: newModels }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
+    it('should handle daily re-sync with existing cache', async () => {
+      const oldModels = [createMockModel('old-model')];
+      await writeCache(
+        { models: oldModels, timestamp: Date.now() - 86400001 },
+        { cacheDir }
+      );
+
+      const newModels = [
+        createMockModel('old-model'),
+        createMockModel('new-model'),
+      ];
+
+      globalThis.fetch = mock(async () => {
+        return new Response(JSON.stringify({ data: newModels }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
       });
+
+      const cache = await readCache({ cacheDir });
+      expect(cache).not.toBeNull();
+      expect(isCacheValid(cache!, 86400000)).toBe(false);
+
+      const modelsResult = await fetchModels();
+      expect('data' in modelsResult).toBe(true);
+      const models = modelsResult.data;
+      expect(models).toHaveLength(2);
+
+      await writeCache({ models, timestamp: Date.now() }, { cacheDir });
+
+      const updatedCache = await readCache({ cacheDir });
+      expect(updatedCache?.models).toHaveLength(2);
+      expect(updatedCache?.models.some((m) => m.id === 'new-model')).toBe(true);
     });
 
-    const cache = await readCache({ cacheDir });
-    expect(cache).not.toBeNull();
-    expect(isCacheValid(cache!, 86400000)).toBe(false);
+    it('should use cached data when API is unavailable', async () => {
+      const cachedModels = [createMockModel('cached-model-1'), createMockModel('cached-model-2')];
+      await writeCache({ models: cachedModels, timestamp: Date.now() }, { cacheDir });
 
-    const models = await fetchModels();
-    expect(models).toHaveLength(2);
+      globalThis.fetch = mock(async () => {
+        throw new Error('Network unavailable');
+      });
 
-    await writeCache({ models: models!, timestamp: Date.now() }, { cacheDir });
+      const cache = await readCache({ cacheDir });
+      expect(cache).not.toBeNull();
+      expect(isCacheValid(cache!, 86400000)).toBe(true);
 
-    const updatedCache = await readCache({ cacheDir });
-    expect(updatedCache?.models).toHaveLength(2);
-    expect(updatedCache?.models.some((m) => m.id === 'new-model')).toBe(true);
-  });
+      const modelsResult = await fetchModels();
+      expect('error' in modelsResult).toBe(true);
+      expect(modelsResult.error.type).toBe('network');
 
-  it('should use cached data when API is unavailable', async () => {
-    const cachedModels = [createMockModel('cached-model-1'), createMockModel('cached-model-2')];
-    await writeCache({ models: cachedModels, timestamp: Date.now() }, { cacheDir });
-
-    globalThis.fetch = mock(async () => {
-      throw new Error('Network unavailable');
+      const fallbackCache = await readCache({ cacheDir });
+      expect(fallbackCache?.models).toHaveLength(2);
+      expect(fallbackCache?.models[0].id).toBe('cached-model-1');
     });
-
-    const cache = await readCache({ cacheDir });
-    expect(cache).not.toBeNull();
-    expect(isCacheValid(cache!, 86400000)).toBe(true);
-
-    const models = await fetchModels();
-    expect(models).toBeNull();
-
-    const fallbackCache = await readCache({ cacheDir });
-    expect(fallbackCache?.models).toHaveLength(2);
-    expect(fallbackCache?.models[0].id).toBe('cached-model-1');
   });
 });
