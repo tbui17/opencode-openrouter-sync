@@ -91,7 +91,7 @@ Never run tests against real user config (`~/.config/opencode/opencode.json`).
 
 # CI/CD & Release Process
 
-This project uses **Release Please** for automated versioning and publishing to npm.
+This project uses **Release Please** for automated versioning and **npm OIDC Trusted Publishing** for secure package releases without long-lived tokens.
 
 ## How Releases Work
 
@@ -108,25 +108,26 @@ This project uses **Release Please** for automated versioning and publishing to 
 3. **Merge the Release PR** → automatically:
    - Creates a GitHub Release
    - Triggers `publish.yml` workflow
-   - Publishes to npm with provenance
+   - Publishes to npm with provenance via OIDC
 
 ## Workflows
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | `ci.yml` | Push/PR to main | Run tests, typecheck, build |
-| `release-please.yml` | Push to main | Manage Release PR |
-| `publish.yml` | GitHub Release published | Publish to npm |
+| `release-please.yml` | Push to main | Manage Release PRs |
+| `publish.yml` | GitHub Release published | Publish to npm via OIDC |
 
-## Required Setup
+## OIDC Trusted Publishing
 
-Before releases work, ensure:
+This project uses npm OIDC instead of `NPM_TOKEN`. No secrets required.
 
-1. **GitHub repository** exists and code is pushed
-2. **NPM_TOKEN secret** added to GitHub repo settings (npm automation token)
-3. **Workflow permissions** in repo settings:
-   - "Read and write permissions" enabled
-   - "Allow GitHub Actions to create and approve pull requests" enabled
+**Key configuration:**
+- `permissions.id-token: write` in `publish.yml`
+- Trusted publisher configured at npmjs.com
+- Repository field in `package.json` for provenance
+
+**See:** [docs/npm-oidc-trusted-publishing.md](docs/npm-oidc-trusted-publishing.md) for detailed setup guide.
 
 ## Conventional Commit Reference
 
