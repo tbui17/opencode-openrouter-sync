@@ -134,6 +134,7 @@ export interface SyncResult {
   success: boolean;
   modelsAdded: number;
   modelsSkipped: number;
+  modelsRemoved: number;
   error?: string;
 }
 

@@ -122,28 +122,34 @@ export async function readConfig(
 export async function writeConfig(
   config: Record<string, unknown>,
   configPath?: string,
-  log?: (msg: string) => void
+  log?: (msg: string) => void,
+  options?: { merge?: boolean }
 ): Promise<boolean> {
   const path = configPath ?? await resolveGlobalConfigPath();
+  const shouldMerge = options?.merge !== false; // default true for backward compat
 
   try {
     // Ensure directory exists
     const configDir = dirname(path);
     await mkdir(configDir, { recursive: true });
 
-    // Read existing config to merge (if it exists and is valid)
-    const existing = await readConfig(configPath, log);
-    let mergedConfig: Record<string, unknown>;
+    let finalConfig: Record<string, unknown>;
 
-    if (existing) {
-      // Deep merge: existing config takes precedence, new values are added
-      mergedConfig = deepMerge(existing, config);
+    if (shouldMerge) {
+      // Read existing config to merge (if it exists and is valid)
+      const existing = await readConfig(configPath, log);
+      if (existing) {
+        // Deep merge: existing config takes precedence, new values are added
+        finalConfig = deepMerge(existing, config);
+      } else {
+        finalConfig = config;
+      }
     } else {
-      mergedConfig = config;
+      finalConfig = config;
     }
 
     // Write with pretty formatting (2-space indent)
-    const content = JSON.stringify(mergedConfig, null, 2);
+    const content = JSON.stringify(finalConfig, null, 2);
     await writeFile(path, content, 'utf-8');
 
     return true;
@@ -271,18 +277,19 @@ export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry
 
 /**
  * Update models in the config with new OpenRouter models
- * Only adds models that don't already exist - never overwrites
+ * Adds models that don't exist, and removes models no longer in the API response.
+ * The API is treated as the source of truth for the openrouter provider.
  */
 export async function updateModels(
   models: OpenRouterModel[],
   configPath?: string,
   log?: (msg: string) => void
-): Promise<{ added: number; skipped: number }> {
+): Promise<{ added: number; skipped: number; removed: number }> {
   const config = await readConfig(configPath, log);
 
   if (!config) {
     log?.('Failed to read config, cannot update models');
-    return { added: 0, skipped: 0 };
+    return { added: 0, skipped: 0, removed: 0 };
   }
 
   // Ensure provider.openrouter.models exists
@@ -301,9 +308,23 @@ export async function updateModels(
   }
   const existingModels = openrouter.models as Record<string, unknown>;
 
+  // Build a set of valid model IDs from the API response
+  const apiModelIds = new Set(models.map(m => m.id).filter(Boolean));
+
   let added = 0;
   let skipped = 0;
+  let removed = 0;
 
+  // Remove models no longer present in the API response
+  for (const existingId of Object.keys(existingModels)) {
+    if (!apiModelIds.has(existingId)) {
+      delete existingModels[existingId];
+      removed++;
+      log?.(`Removed stale model: ${existingId}`);
+    }
+  }
+
+  // Add new models
   for (const model of models) {
     if (!model.id) {
       log?.('Skipping model without ID');
@@ -323,12 +344,12 @@ export async function updateModels(
     log?.(`Added model: ${model.id}`);
   }
 
-  const success = await writeConfig(config, configPath, log);
+  const success = await writeConfig(config, configPath, log, { merge: false });
 
   if (!success) {
     log?.('Failed to write config after updating models');
-    return { added: 0, skipped: models.length };
+    return { added: 0, skipped: models.length, removed: 0 };
   }
 
-  return { added, skipped };
+  return { added, skipped, removed };
 }

@@ -292,6 +292,7 @@ describe('Integration Tests - Full Sync Flow', () => {
 
       expect(result.added).toBe(1); // Only anthropic/claude-3 is new
       expect(result.skipped).toBe(1); // openai/gpt-4 already exists
+      expect(result.removed).toBe(0); // Both existing models are in API response
 
       // Step 6: Verify existing model is preserved
       const finalContent = await readFile(configPath, 'utf-8');
@@ -474,6 +475,44 @@ describe('Integration Tests - Full Sync Flow', () => {
       expect(parsed.provider.openrouter.models['model-a'].name).toBe('Custom Name');
       expect(parsed.provider.openrouter.models['model-a'].customField).toBe('custom-value');
       expect(parsed.provider.openrouter.models['model-a'].limit.context).toBe(8192);
+    });
+
+    it('should remove models no longer in API response', async () => {
+      const existingConfig = {
+        provider: {
+          openrouter: {
+            models: {
+              'active-model': { name: 'Active' },
+              'retired-model': { name: 'Retired' },
+              'deprecated-model': { name: 'Deprecated' },
+            },
+          },
+        },
+      };
+
+      await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+
+      // API only returns active-model and a new one
+      const fetchedModels = [
+        createMockModel('active-model'),
+        createMockModel('brand-new-model'),
+      ];
+
+      const result = await updateModels(fetchedModels, configPath);
+
+      expect(result.added).toBe(1); // brand-new-model
+      expect(result.skipped).toBe(1); // active-model
+      expect(result.removed).toBe(2); // retired-model, deprecated-model
+
+      const content = await readFile(configPath, 'utf-8');
+      const parsed = JSON.parse(content);
+      const models = parsed.provider.openrouter.models;
+
+      expect(Object.keys(models)).toHaveLength(2);
+      expect(models['active-model']).toBeDefined();
+      expect(models['brand-new-model']).toBeDefined();
+      expect(models['retired-model']).toBeUndefined();
+      expect(models['deprecated-model']).toBeUndefined();
     });
 
     it('should skip models without IDs', async () => {
