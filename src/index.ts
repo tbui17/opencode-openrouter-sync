@@ -1,17 +1,17 @@
 /**
  * OpenRouter Model Sync Plugin - Main Export
  *
- * This is the main entry point for the plugin. It exports:
- * - The plugin function (default)
- * - Utility functions for manual sync and cache management
- * - Type definitions for TypeScript consumers
+ * This is the main entry point for the plugin.
+ *
+ * IMPORTANT: Only default export and type exports are allowed here.
+ * OpenCode treats ALL exports as plugin instances and calls them.
+ * Utility functions are available via the `/sync` subpath:
+ *   import { syncModels } from 'opencode-openrouter-sync/sync'
  */
 
 import OpenRouterModelSyncPlugin from './plugin.js';
-import { clearCache, readCache, writeCache, isCacheValid, getCachePath } from './cache.js';
-import { fetchModels } from './api.js';
-import { updateModels, readConfig, writeConfig, getGlobalConfigPath } from './config.js';
 
+// Type-only exports are safe - OpenCode doesn't try to call types
 export type {
   OpenRouterModel,
   OpenRouterResponse,
@@ -28,30 +28,5 @@ export type {
   DefaultParameters,
 } from './types.js';
 
-/**
- * Perform a full sync of models from OpenRouter API to the config
- * This combines fetching models and updating the config
- * @returns Sync result with counts
- */
-export async function syncModels(): Promise<{ added: number; skipped: number }> {
-  const models = await fetchModels();
-
-  if (!models) {
-    return { added: 0, skipped: 0 };
-  }
-
-  return updateModels(models);
-}
-
-/**
- * Clear the model cache
- * Forces a fresh sync on next plugin run
- * @returns true if cache was cleared
- */
-export { clearCache };
-
-export { readCache, writeCache, isCacheValid, getCachePath };
-
-export { fetchModels, updateModels, readConfig, writeConfig, getGlobalConfigPath };
-
+// Default export is the plugin function
 export default OpenRouterModelSyncPlugin;

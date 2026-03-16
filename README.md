@@ -89,7 +89,7 @@ This forces an immediate sync regardless of when the last sync occurred.
 You can also use the sync functionality programmatically in your own code:
 
 ```typescript
-import { syncModels, fetchModels } from 'opencode-openrouter-sync';
+import { syncModels, fetchModels } from 'opencode-openrouter-sync/sync';
 
 // Full sync with config
 const result = await syncModels();
@@ -97,8 +97,10 @@ console.log(`Added ${result.added} models, skipped ${result.skipped}`);
 
 // Fetch models without updating config
 const models = await fetchModels();
-console.log(`Fetched ${models.length} models from OpenRouter`);
+console.log(`Fetched ${models?.length ?? 0} models from OpenRouter`);
 ```
+
+> **Note**: Programmatic functions are available via the `/sync` subpath to avoid conflicts with OpenCode's plugin loading mechanism.
 
 ### Verifying Sync
 

@@ -1,5 +1,5 @@
 {
-  "name": "openrouter-model-sync",
+  "name": "opencode-openrouter-sync",
   "version": "1.0.0",
   "description": "OpenCode plugin for OpenRouter model synchronization",
   "type": "module",
@@ -9,6 +9,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./sync": {
+      "import": "./dist/sync.js",
+      "types": "./dist/sync.d.ts"
     }
   },
   "files": [
@@ -19,7 +23,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "bun test",
-    "clean": "node -e \"const fs=require('fs');if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true});\""
+    "test:run": "bun test --run",
+    "clean": "node -e \"const fs=require('fs');if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true});\"",
+    "prepublishOnly": "bun test --run && tsc"
   },
   "keywords": [
     "opencode",
