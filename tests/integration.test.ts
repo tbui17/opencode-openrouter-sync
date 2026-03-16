@@ -163,11 +163,10 @@ describe('Integration Tests - Full Sync Flow', () => {
 
   describe('Config Operations', () => {
     it('should create default config when file does not exist', async () => {
-      // Temporarily override config path (we need to test through the functions)
+      // Use a non-existent path in temp directory for isolation
       const nonExistentConfig = join(tempDir, 'nonexistent', 'config.json');
 
-      // Create a minimal config file to test readConfig behavior
-      const config = await readConfig();
+      const config = await readConfig(nonExistentConfig);
       expect(config).not.toBeNull();
       expect(config?.provider).toBeDefined();
     });
@@ -189,8 +188,8 @@ describe('Integration Tests - Full Sync Flow', () => {
 
       await writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
 
-      // Mock the config path by testing through writeConfig which merges
-      const testConfig = await readConfig();
+      // Read from the temp config path for isolation
+      const testConfig = await readConfig(configPath);
       expect(testConfig).not.toBeNull();
     });
 
