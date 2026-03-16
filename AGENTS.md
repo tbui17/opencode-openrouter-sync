@@ -88,3 +88,57 @@ await rm(tempDir, { recursive: true, force: true });
 ```
 
 Never run tests against real user config (`~/.config/opencode/opencode.json`).
+
+# CI/CD & Release Process
+
+This project uses **Release Please** for automated versioning and publishing to npm.
+
+## How Releases Work
+
+1. **Make changes** using conventional commits:
+   - `feat: add new feature` → minor version bump (1.0.0 → 1.1.0)
+   - `fix: patch bug` → patch version bump (1.0.0 → 1.0.1)
+   - `feat!: breaking change` or `feat: add feature\n\nBREAKING CHANGE: ...` → major bump (1.0.0 → 2.0.0)
+
+2. **Push to main** → Release Please creates/updates a "Release PR" with:
+   - Version bump in `package.json`
+   - Updated `CHANGELOG.md`
+   - List of changes since last release
+
+3. **Merge the Release PR** → automatically:
+   - Creates a GitHub Release
+   - Triggers `publish.yml` workflow
+   - Publishes to npm with provenance
+
+## Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Push/PR to main | Run tests, typecheck, build |
+| `release-please.yml` | Push to main | Manage Release PR |
+| `publish.yml` | GitHub Release published | Publish to npm |
+
+## Required Setup
+
+Before releases work, ensure:
+
+1. **GitHub repository** exists and code is pushed
+2. **NPM_TOKEN secret** added to GitHub repo settings (npm automation token)
+3. **Workflow permissions** in repo settings:
+   - "Read and write permissions" enabled
+   - "Allow GitHub Actions to create and approve pull requests" enabled
+
+## Conventional Commit Reference
+
+```
+feat:     A new feature
+fix:      A bug fix
+docs:     Documentation only changes
+style:    Changes that do not affect the meaning of the code
+refactor: A code change that neither fixes a bug nor adds a feature
+perf:     A code change that improves performance
+test:     Adding missing tests or correcting existing tests
+chore:    Changes to build process or auxiliary tools
+```
+
+For breaking changes, use `!` after the type or add `BREAKING CHANGE:` in the footer.
