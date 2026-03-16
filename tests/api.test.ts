@@ -1,6 +1,6 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { fetchModels } from '../src/api';
-import type { OpenRouterModel, OpenRouterResponse } from '../src/types';
+import type { OpenRouterModel, OpenRouterResponse, FetchResult } from '../src/types';
 
 // Helper to create valid mock model
 function createMockModel(overrides: Partial<OpenRouterModel> = {}): OpenRouterModel {
@@ -61,7 +61,7 @@ describe('fetchModels', () => {
     global.fetch = originalFetch;
   });
 
-  test('returns array of models on successful API call', async () => {
+  test('returns FetchResult with data on successful API call', async () => {
     const mockModels = [createMockModel({ id: 'model-1', name: 'Model One' }), createMockModel({ id: 'model-2', name: 'Model Two' })];
     
     // Mock successful fetch response
@@ -74,13 +74,13 @@ describe('fetchModels', () => {
 
     const result = await fetchModels();
 
-    expect(result).not.toBeNull();
-    expect(result).toHaveLength(2);
-    expect(result?.[0].id).toBe('model-1');
-    expect(result?.[1].id).toBe('model-2');
+    expect('data' in result).toBe(true);
+    expect(result.data).toHaveLength(2);
+    expect(result.data[0].id).toBe('model-1');
+    expect(result.data[1].id).toBe('model-2');
   });
 
-  test('returns null on network error', async () => {
+  test('returns FetchResult with error on network error', async () => {
     // Mock network error
     global.fetch = mock(async () => {
       throw new Error('Network connection failed');
@@ -88,10 +88,11 @@ describe('fetchModels', () => {
 
     const result = await fetchModels();
 
-    expect(result).toBeNull();
+    expect('error' in result).toBe(true);
+    expect(result.error.type).toBe('network');
   });
 
-  test('returns null on timeout (AbortError)', async () => {
+  test('returns FetchResult with error on timeout (AbortError)', async () => {
     // Mock timeout - AbortError
     global.fetch = mock(async () => {
       const error = new Error('Request timed out');
@@ -101,10 +102,11 @@ describe('fetchModels', () => {
 
     const result = await fetchModels();
 
-    expect(result).toBeNull();
+    expect('error' in result).toBe(true);
+    expect(result.error.type).toBe('timeout');
   });
 
-  test('returns null on malformed JSON response', async () => {
+  test('returns FetchResult with error on malformed JSON response', async () => {
     // Mock response with invalid JSON
     global.fetch = mock(async () => {
       return {
@@ -117,10 +119,11 @@ describe('fetchModels', () => {
 
     const result = await fetchModels();
 
-    expect(result).toBeNull();
+    expect('error' in result).toBe(true);
+    expect(result.error.type).toBe('parse');
   });
 
-  test('returns null when response lacks data array', async () => {
+  test('returns FetchResult with error when response lacks data array', async () => {
     // Mock response with invalid structure (missing data array)
     global.fetch = mock(async () => {
       return {
@@ -131,10 +134,11 @@ describe('fetchModels', () => {
 
     const result = await fetchModels();
 
-    expect(result).toBeNull();
+    expect('error' in result).toBe(true);
+    expect(result.error.type).toBe('validation');
   });
 
-  test('returns null when data array is empty', async () => {
+  test('returns FetchResult with error when data array is empty', async () => {
     // Mock response with empty data array
     global.fetch = mock(async () => {
       return {
@@ -145,26 +149,29 @@ describe('fetchModels', () => {
 
     const result = await fetchModels();
 
-    expect(result).toBeNull();
+    expect('error' in result).toBe(true);
+    expect(result.error.type).toBe('empty');
   });
 
-  test('returns null when HTTP status is not ok', async () => {
+  test('returns FetchResult with error when HTTP status is not ok', async () => {
     // Mock 500 error response
     global.fetch = mock(async () => {
       return {
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
-        json: async () => ({}),
+        text: async () => 'Internal Server Error',
       } as Response;
     });
 
     const result = await fetchModels();
 
-    expect(result).toBeNull();
+    expect('error' in result).toBe(true);
+    expect(result.error.type).toBe('http');
+    expect(result.error.status).toBe(500);
   });
 
-  test('returns null when model missing required fields', async () => {
+  test('returns FetchResult with error when model missing required fields', async () => {
     // Mock response with invalid model (missing required fields)
     const invalidModel = createMockModel();
     delete (invalidModel as Partial<OpenRouterModel>).context_length;
@@ -178,10 +185,11 @@ describe('fetchModels', () => {
 
     const result = await fetchModels();
 
-    expect(result).toBeNull();
+    expect('error' in result).toBe(true);
+    expect(result.error.type).toBe('validation');
   });
 
-  test('returns null on non-object response', async () => {
+  test('returns FetchResult with error on non-object response', async () => {
     // Mock response returning non-object
     global.fetch = mock(async () => {
       return {
@@ -192,6 +200,7 @@ describe('fetchModels', () => {
 
     const result = await fetchModels();
 
-    expect(result).toBeNull();
+    expect('error' in result).toBe(true);
+    expect(result.error.type).toBe('validation');
   });
 });

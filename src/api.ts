@@ -3,7 +3,7 @@
  * Fetches available models from OpenRouter's public API
  */
 
-import type { OpenRouterModel, OpenRouterResponse } from './types';
+import type { OpenRouterModel, OpenRouterResponse, FetchResult } from './types';
 
 const API_ENDPOINT = 'https://openrouter.ai/api/v1/models';
 const DEFAULT_TIMEOUT_MS = 30000;
@@ -22,9 +22,9 @@ const ErrorMessages = {
 
 /**
  * Fetch models from OpenRouter API
- * @returns Array of OpenRouterModel on success, null on failure
+ * @returns FetchResult with data on success, error on failure
  */
-export async function fetchModels(): Promise<OpenRouterModel[] | null> {
+export async function fetchModels(): Promise<FetchResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
@@ -40,10 +40,24 @@ export async function fetchModels(): Promise<OpenRouterModel[] | null> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      let details: unknown = undefined;
+      try {
+        const body = await response.text();
+        details = body;
+      } catch {
+        // Ignore errors reading body
+      }
       console.error(
         `${ErrorMessages.NETWORK_ERROR}: HTTP ${response.status} ${response.statusText}`
       );
-      return null;
+      return {
+        error: {
+          type: 'http',
+          message: `${ErrorMessages.NETWORK_ERROR}: HTTP ${response.status} ${response.statusText}`,
+          status: response.status,
+          details,
+        },
+      };
     }
 
     let data: unknown;
@@ -51,34 +65,69 @@ export async function fetchModels(): Promise<OpenRouterModel[] | null> {
       data = await response.json();
     } catch (parseError) {
       console.error(ErrorMessages.PARSE_ERROR, parseError);
-      return null;
+      return {
+        error: {
+          type: 'parse',
+          message: ErrorMessages.PARSE_ERROR,
+          details: parseError,
+        },
+      };
     }
 
     if (!isValidOpenRouterResponse(data)) {
       console.error(ErrorMessages.INVALID_RESPONSE);
-      return null;
+      return {
+        error: {
+          type: 'validation',
+          message: ErrorMessages.INVALID_RESPONSE,
+          details: data,
+        },
+      };
     }
 
     if (data.data.length === 0) {
       console.error(ErrorMessages.EMPTY_DATA);
-      return null;
+      return {
+        error: {
+          type: 'empty',
+          message: ErrorMessages.EMPTY_DATA,
+        },
+      };
     }
 
-    return data.data;
+    return { data: data.data };
   } catch (error) {
     clearTimeout(timeoutId);
 
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         console.error(ErrorMessages.TIMEOUT);
+        return {
+          error: {
+            type: 'timeout',
+            message: ErrorMessages.TIMEOUT,
+          },
+        };
       } else {
         console.error(`${ErrorMessages.NETWORK_ERROR}: ${error.message}`);
+        return {
+          error: {
+            type: 'network',
+            message: `${ErrorMessages.NETWORK_ERROR}: ${error.message}`,
+            details: error,
+          },
+        };
       }
     } else {
       console.error(ErrorMessages.UNKNOWN, error);
+      return {
+        error: {
+          type: 'network',
+          message: ErrorMessages.UNKNOWN,
+          details: error,
+        },
+      };
     }
-
-    return null;
   }
 }
 

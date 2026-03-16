@@ -183,3 +183,31 @@ export interface OpenCodeModelEntry {
  * @deprecated Use OpenCodeModelEntry instead. This alias exists for backward compatibility.
  */
 export type ConfigModelEntry = OpenCodeModelEntry;
+
+/**
+ * API error types for classification
+ */
+export type ApiErrorType =
+  | 'network'
+  | 'timeout'
+  | 'http'
+  | 'parse'
+  | 'validation'
+  | 'empty';
+
+/**
+ * Structured API error with type classification
+ */
+export interface ApiError {
+  type: ApiErrorType;
+  message: string;
+  status?: number;
+  details?: unknown;
+}
+
+/**
+ * Result type for fetch operations - discriminated union for type-safe error handling
+ */
+export type FetchResult =
+  | { data: OpenRouterModel[] }
+  | { error: ApiError };
