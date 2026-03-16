@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.0.0...v1.1.0) (2026-03-16)
+
+
+### Features
+
+* add changelog section to README ([0dd5e3f](https://github.com/tbui17/opencode-openrouter-sync/commit/0dd5e3fe72496e73c35d1925c2d9156b0ece98e7))
+* switch to npm OIDC trusted publishing ([33b5edf](https://github.com/tbui17/opencode-openrouter-sync/commit/33b5edfb608d727b2edb62fe29fb88012d1092e0))
+
+
+### Bug Fixes
+
+* add publishConfig.access: public for npm provenance ([771384f](https://github.com/tbui17/opencode-openrouter-sync/commit/771384f3cc411456009d925e7d35301a1031eab7))
+* add repository field for provenance verification ([165a4e1](https://github.com/tbui17/opencode-openrouter-sync/commit/165a4e1128093acd778e2200c4f966727b419522))
+* add workflow_dispatch to publish.yml ([7d3e681](https://github.com/tbui17/opencode-openrouter-sync/commit/7d3e6817d0e96d6138d8df83ef56a7d516c6947b))
+* remove provenance from publish workflow ([4c41e94](https://github.com/tbui17/opencode-openrouter-sync/commit/4c41e941692fb64d837b49b1d32a5bbb50d3c47f))
+* remove provenance from publishConfig for local publish compatibility ([ac0a0ef](https://github.com/tbui17/opencode-openrouter-sync/commit/ac0a0efd1133c66fa757bbbabbbd8e6a598d92bb))
+* use tsc-only prepublishOnly for Node.js CI compatibility ([8eb6d72](https://github.com/tbui17/opencode-openrouter-sync/commit/8eb6d72999b0dba35e48b2bd1e58c0329f3ee801))
+
 ## 1.0.0 (2026-03-16)
 
 
