@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.2.0...v1.3.0) (2026-03-16)
+
+
+### Features
+
+* remove stale models not present in API response ([#6](https://github.com/tbui17/opencode-openrouter-sync/issues/6)) ([45e662e](https://github.com/tbui17/opencode-openrouter-sync/commit/45e662e7260b5cb3676963f8ed6f8b7d2fcc321c))
+* return structured errors from fetchModels and fix release publish ([#8](https://github.com/tbui17/opencode-openrouter-sync/issues/8)) ([39144fc](https://github.com/tbui17/opencode-openrouter-sync/commit/39144fc3ecfd0d31d4c5fc18d26b6ae713820dcc))
+
 ## [1.2.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.1.0...v1.2.0) (2026-03-16)
 
 
