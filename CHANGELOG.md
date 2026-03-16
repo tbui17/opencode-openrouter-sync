@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.3.0...v1.4.0) (2026-03-16)
+
+
+### Features
+
+* add plugin installed notification ([#9](https://github.com/tbui17/opencode-openrouter-sync/issues/9)) ([99e501c](https://github.com/tbui17/opencode-openrouter-sync/commit/99e501c4f6b55aa99fa2d8eefcb6be3824b95901))
+
 ## [1.3.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.2.0...v1.3.0) (2026-03-16)
 
 
