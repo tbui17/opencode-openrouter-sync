@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.1.0...v1.2.0) (2026-03-16)
+
+
+### Features
+
+* add JSONC support and update model schema to match OpenCode ([#4](https://github.com/tbui17/opencode-openrouter-sync/issues/4)) ([c072f63](https://github.com/tbui17/opencode-openrouter-sync/commit/c072f63229532e5978ee446ac4237d2291c72083))
+
 ## [1.1.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.0.0...v1.1.0) (2026-03-16)
 
 
