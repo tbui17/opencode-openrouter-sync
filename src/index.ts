@@ -21,6 +21,7 @@ export type {
   PluginContext,
   SyncResult,
   ModelFilter,
+  OpenCodeModelEntry,
   ConfigModelEntry,
   ModelArchitecture,
   ModelPricing,

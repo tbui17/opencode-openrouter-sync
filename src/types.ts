@@ -152,19 +152,33 @@ export interface ModelFilter {
 }
 
 /**
- * Config model entry for OpenCode
+ * Model entry matching OpenCode's ModelsDev.Model schema
  */
-export interface ConfigModelEntry {
-  id: string;
-  name: string;
-  provider: string;
-  context_length?: number;
-  pricing?: {
-    prompt: number;
-    completion: number;
+export interface OpenCodeModelEntry {
+  name?: string;
+  cost?: {
+    input?: number;
+    output?: number;
+    cache_read?: number;
   };
-  max_completion_tokens?: number;
-  supported_parameters?: string[];
-  default_parameters?: DefaultParameters;
-  is_moderated?: boolean;
+  limit?: {
+    context?: number;
+    output?: number;
+  };
+  modalities?: {
+    input?: string[];
+    output?: string[];
+  };
+  temperature?: boolean;
+  tool_call?: boolean;
+  reasoning?: boolean;
+  attachment?: boolean;
+  options?: Record<string, unknown>;
+  variants?: Record<string, unknown>;
+  status?: string;
 }
+
+/**
+ * @deprecated Use OpenCodeModelEntry instead. This alias exists for backward compatibility.
+ */
+export type ConfigModelEntry = OpenCodeModelEntry;

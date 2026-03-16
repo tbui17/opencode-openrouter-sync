@@ -5,24 +5,8 @@
 import { mkdir, readFile, writeFile, access } from 'fs/promises';
 import { homedir } from 'os';
 import { dirname, join } from 'path';
-import type { ConfigModelEntry, OpenRouterModel } from './types.js';
-
-/**
- * Useful LLM parameters that can be filtered from OpenRouter API
- */
-export const USEFUL_PARAMETERS = [
-  'tools',
-  'tool_choice',
-  'temperature',
-  'top_p',
-  'max_tokens',
-  'reasoning',
-  'reasoning_effort',
-  'include_reasoning',
-  'web_search_options',
-  'response_format',
-  'structured_outputs'
-] as const;
+import type { OpenCodeModelEntry, OpenRouterModel } from './types.js';
+import { stripJsonComments } from './jsonc.js';
 
 /**
  * Default configuration structure
@@ -36,7 +20,7 @@ const DEFAULT_CONFIG: Record<string, unknown> = {
 };
 
 /**
- * Get the global OpenCode config path
+ * Get the global OpenCode config path (sync, for backward compat)
  * @param customPath - Optional custom path for testing
  * @returns Path to ~/.config/opencode/opencode.json or custom path
  */
@@ -49,8 +33,6 @@ export function getGlobalConfigPath(customPath?: string): string {
 
 /**
  * Check if a file exists
- * @param path - File path to check
- * @returns True if file exists, false otherwise
  */
 async function fileExists(path: string): Promise<boolean> {
   try {
@@ -62,8 +44,25 @@ async function fileExists(path: string): Promise<boolean> {
 }
 
 /**
+ * Resolve the global config path, preferring .jsonc over .json
+ * @param customPath - Optional custom path (returned as-is if provided)
+ * @returns Resolved path to the config file
+ */
+export async function resolveGlobalConfigPath(customPath?: string): Promise<string> {
+  if (customPath) {
+    return customPath;
+  }
+  const configDir = join(homedir(), '.config', 'opencode');
+  const jsoncPath = join(configDir, 'opencode.jsonc');
+  if (await fileExists(jsoncPath)) {
+    return jsoncPath;
+  }
+  return join(configDir, 'opencode.json');
+}
+
+/**
  * Read and parse the OpenCode config file
- * Creates a default config if file doesn't exist
+ * Supports JSONC (JSON with comments). Creates a default config if file doesn't exist.
  * @param configPath - Optional custom path for testing
  * @param log - Optional logging function
  * @returns Parsed config object or null if malformed
@@ -72,7 +71,7 @@ export async function readConfig(
   configPath?: string,
   log?: (msg: string) => void
 ): Promise<Record<string, unknown> | null> {
-  const path = configPath || getGlobalConfigPath();
+  const path = configPath ?? await resolveGlobalConfigPath();
 
   try {
     const exists = await fileExists(path);
@@ -83,7 +82,8 @@ export async function readConfig(
     }
 
     const content = await readFile(path, 'utf-8');
-    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const stripped = stripJsonComments(content);
+    const parsed = JSON.parse(stripped) as Record<string, unknown>;
 
     // Ensure provider.openrouter.models exists
     if (!parsed.provider) {
@@ -124,7 +124,7 @@ export async function writeConfig(
   configPath?: string,
   log?: (msg: string) => void
 ): Promise<boolean> {
-  const path = configPath || getGlobalConfigPath();
+  const path = configPath ?? await resolveGlobalConfigPath();
 
   try {
     // Ensure directory exists
@@ -157,9 +157,6 @@ export async function writeConfig(
  * Deep merge two objects
  * Source properties are added if they don't exist in target
  * Target properties are never overwritten
- * @param target - Base object (existing config)
- * @param source - New values to merge in
- * @returns Merged object
  */
 function deepMerge(
   target: Record<string, unknown>,
@@ -169,7 +166,6 @@ function deepMerge(
 
   for (const key of Object.keys(source)) {
     if (key in result) {
-      // Key exists in target - check if both are objects for recursive merge
       const targetValue = result[key];
       const sourceValue = source[key];
 
@@ -181,15 +177,12 @@ function deepMerge(
         sourceValue !== null &&
         !Array.isArray(sourceValue)
       ) {
-        // Both are plain objects - recursive merge
         result[key] = deepMerge(
           targetValue as Record<string, unknown>,
           sourceValue as Record<string, unknown>
         );
       }
-      // Otherwise: keep target value (don't overwrite)
     } else {
-      // Key doesn't exist - add from source
       result[key] = source[key];
     }
   }
@@ -198,56 +191,79 @@ function deepMerge(
 }
 
 /**
- * Convert OpenRouter model to config model entry
- * @param model - OpenRouter model from API
- * @returns Config model entry
+ * Convert OpenRouter model to OpenCode model entry
+ * Produces fields matching OpenCode's ModelsDev.Model schema
  */
-export function convertToConfigModel(model: OpenRouterModel): ConfigModelEntry {
-  const entry: ConfigModelEntry = {
-    id: model.id,
-    name: model.name,
-    provider: 'openrouter'
-  };
+export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry {
+  const entry: OpenCodeModelEntry = {};
 
-  if (model.context_length > 0) {
-    entry.context_length = model.context_length;
+  if (model.name) {
+    entry.name = model.name;
   }
 
+  // cost: pricing strings → numbers
   if (model.pricing) {
-    const promptPrice = parseFloat(model.pricing.prompt);
-    const completionPrice = parseFloat(model.pricing.completion);
+    const input = parseFloat(model.pricing.prompt);
+    const output = parseFloat(model.pricing.completion);
+    const cacheRead = parseFloat(model.pricing.input_cache_read);
 
-    if (!isNaN(promptPrice) || !isNaN(completionPrice)) {
-      entry.pricing = {
-        prompt: isNaN(promptPrice) ? 0 : promptPrice,
-        completion: isNaN(completionPrice) ? 0 : completionPrice
-      };
+    const cost: OpenCodeModelEntry['cost'] = {};
+    if (!isNaN(input)) cost.input = input;
+    if (!isNaN(output)) cost.output = output;
+    if (!isNaN(cacheRead)) cost.cache_read = cacheRead;
+
+    if (Object.keys(cost).length > 0) {
+      entry.cost = cost;
     }
   }
 
-  // NEW: max_completion_tokens from top_provider (optional chaining)
+  // limit: context and output tokens
+  const limit: OpenCodeModelEntry['limit'] = {};
+  if (model.context_length > 0) {
+    limit.context = model.context_length;
+  }
   if (model.top_provider?.max_completion_tokens) {
-    entry.max_completion_tokens = model.top_provider.max_completion_tokens;
+    limit.output = model.top_provider.max_completion_tokens;
+  }
+  if (Object.keys(limit).length > 0) {
+    entry.limit = limit;
   }
 
-  // NEW: supported_parameters (filtered to useful subset)
-  if (model.supported_parameters?.length) {
-    const filtered = model.supported_parameters.filter(
-      p => USEFUL_PARAMETERS.includes(p as typeof USEFUL_PARAMETERS[number])
-    );
-    if (filtered.length > 0) {
-      entry.supported_parameters = filtered;
+  // modalities from architecture
+  if (model.architecture) {
+    const modalities: OpenCodeModelEntry['modalities'] = {};
+    if (model.architecture.input_modalities?.length) {
+      modalities.input = model.architecture.input_modalities;
+    }
+    if (model.architecture.output_modalities?.length) {
+      modalities.output = model.architecture.output_modalities;
+    }
+    if (Object.keys(modalities).length > 0) {
+      entry.modalities = modalities;
     }
   }
 
-  // NEW: default_parameters (pass-through, preserve nulls)
-  if (model.default_parameters) {
-    entry.default_parameters = model.default_parameters;
+  // Boolean capability flags from supported_parameters
+  if (model.supported_parameters?.length) {
+    const params = model.supported_parameters;
+
+    if (params.includes('temperature')) {
+      entry.temperature = true;
+    }
+    if (params.includes('tools') || params.includes('tool_choice')) {
+      entry.tool_call = true;
+    }
+    if (params.includes('reasoning') || params.includes('reasoning_effort')) {
+      entry.reasoning = true;
+    }
   }
 
-  // NEW: is_moderated (explicit boolean only, omit if undefined)
-  if (model.top_provider?.is_moderated !== undefined) {
-    entry.is_moderated = model.top_provider.is_moderated;
+  // attachment: input modalities contain image or pdf
+  if (model.architecture?.input_modalities?.length) {
+    const inputs = model.architecture.input_modalities;
+    if (inputs.includes('image') || inputs.includes('pdf')) {
+      entry.attachment = true;
+    }
   }
 
   return entry;
@@ -256,10 +272,6 @@ export function convertToConfigModel(model: OpenRouterModel): ConfigModelEntry {
 /**
  * Update models in the config with new OpenRouter models
  * Only adds models that don't already exist - never overwrites
- * @param models - Models fetched from OpenRouter API
- * @param configPath - Optional custom path for testing
- * @param log - Optional logging function
- * @returns Object with added and skipped counts
  */
 export async function updateModels(
   models: OpenRouterModel[],
@@ -299,21 +311,18 @@ export async function updateModels(
       continue;
     }
 
-    // Check if model already exists (by ID)
     if (model.id in existingModels) {
       log?.(`Model ${model.id} already exists, skipping`);
       skipped++;
       continue;
     }
 
-    // Convert and add new model
     const modelEntry = convertToConfigModel(model);
     existingModels[model.id] = modelEntry;
     added++;
     log?.(`Added model: ${model.id}`);
   }
 
-  // Write updated config
   const success = await writeConfig(config, configPath, log);
 
   if (!success) {

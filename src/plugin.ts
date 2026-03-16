@@ -5,7 +5,7 @@
  * to the global OpenCode configuration. It runs once per 24 hours on startup.
  */
 
-import type { PluginContext } from "./types.js";
+import type { PluginContext, CacheData, OpenRouterModel } from "./types.js";
 import { readCache, writeCache, isCacheValid } from "./cache.js";
 import { fetchModels } from "./api.js";
 import { updateModels } from "./config.js";
@@ -13,13 +13,40 @@ import { updateModels } from "./config.js";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SERVICE_NAME = "openrouter-sync";
 
-async function performSync(ctx: PluginContext): Promise<void> {
+/**
+ * Injectable dependencies for performSync, enabling testability
+ */
+export interface SyncDeps {
+  readCache: () => Promise<CacheData | null>;
+  writeCache: (data: CacheData) => Promise<void>;
+  isCacheValid: (data: CacheData | null, ttlMs: number) => boolean;
+  fetchModels: () => Promise<OpenRouterModel[] | null>;
+  updateModels: (
+    models: OpenRouterModel[],
+    configPath?: string,
+    log?: (msg: string) => void,
+  ) => Promise<{ added: number; skipped: number }>;
+}
+
+const defaultDeps: SyncDeps = {
+  readCache: () => readCache(),
+  writeCache: (data) => writeCache(data),
+  isCacheValid: (data, ttlMs) => isCacheValid(data, ttlMs),
+  fetchModels: () => fetchModels(),
+  updateModels: (models, configPath, log) =>
+    updateModels(models, configPath, log),
+};
+
+export async function performSync(
+  ctx: PluginContext,
+  deps: SyncDeps = defaultDeps,
+): Promise<void> {
   const { client } = ctx;
 
   try {
-    const cached = await readCache();
+    const cached = await deps.readCache();
 
-    if (cached && isCacheValid(cached, CACHE_TTL_MS)) {
+    if (cached && deps.isCacheValid(cached, CACHE_TTL_MS)) {
       client.app.log({
         body: {
           service: SERVICE_NAME,
@@ -42,7 +69,7 @@ async function performSync(ctx: PluginContext): Promise<void> {
       },
     });
 
-    const models = await fetchModels();
+    const models = await deps.fetchModels();
 
     if (!models) {
       client.app.log({
@@ -63,7 +90,7 @@ async function performSync(ctx: PluginContext): Promise<void> {
       },
     });
 
-    const result = await updateModels(
+    const result = await deps.updateModels(
       models,
       undefined,
       async (msg: string) => {
@@ -89,7 +116,7 @@ async function performSync(ctx: PluginContext): Promise<void> {
       },
     });
 
-    await writeCache({
+    await deps.writeCache({
       models,
       timestamp: Date.now(),
     });
