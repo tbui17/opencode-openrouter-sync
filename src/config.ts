@@ -8,6 +8,23 @@ import { dirname, join } from 'path';
 import type { ConfigModelEntry, OpenRouterModel } from './types.js';
 
 /**
+ * Useful LLM parameters that can be filtered from OpenRouter API
+ */
+export const USEFUL_PARAMETERS = [
+  'tools',
+  'tool_choice',
+  'temperature',
+  'top_p',
+  'max_tokens',
+  'reasoning',
+  'reasoning_effort',
+  'include_reasoning',
+  'web_search_options',
+  'response_format',
+  'structured_outputs'
+] as const;
+
+/**
  * Default configuration structure
  */
 const DEFAULT_CONFIG: Record<string, unknown> = {
@@ -185,7 +202,7 @@ function deepMerge(
  * @param model - OpenRouter model from API
  * @returns Config model entry
  */
-function convertToConfigModel(model: OpenRouterModel): ConfigModelEntry {
+export function convertToConfigModel(model: OpenRouterModel): ConfigModelEntry {
   const entry: ConfigModelEntry = {
     id: model.id,
     name: model.name,
@@ -206,6 +223,31 @@ function convertToConfigModel(model: OpenRouterModel): ConfigModelEntry {
         completion: isNaN(completionPrice) ? 0 : completionPrice
       };
     }
+  }
+
+  // NEW: max_completion_tokens from top_provider (optional chaining)
+  if (model.top_provider?.max_completion_tokens) {
+    entry.max_completion_tokens = model.top_provider.max_completion_tokens;
+  }
+
+  // NEW: supported_parameters (filtered to useful subset)
+  if (model.supported_parameters?.length) {
+    const filtered = model.supported_parameters.filter(
+      p => USEFUL_PARAMETERS.includes(p as typeof USEFUL_PARAMETERS[number])
+    );
+    if (filtered.length > 0) {
+      entry.supported_parameters = filtered;
+    }
+  }
+
+  // NEW: default_parameters (pass-through, preserve nulls)
+  if (model.default_parameters) {
+    entry.default_parameters = model.default_parameters;
+  }
+
+  // NEW: is_moderated (explicit boolean only, omit if undefined)
+  if (model.top_provider?.is_moderated !== undefined) {
+    entry.is_moderated = model.top_provider.is_moderated;
   }
 
   return entry;

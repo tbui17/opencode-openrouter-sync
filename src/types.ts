@@ -163,4 +163,8 @@ export interface ConfigModelEntry {
     prompt: number;
     completion: number;
   };
+  max_completion_tokens?: number;
+  supported_parameters?: string[];
+  default_parameters?: DefaultParameters;
+  is_moderated?: boolean;
 }

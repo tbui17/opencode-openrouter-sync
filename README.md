@@ -166,8 +166,25 @@ The plugin adds models under `provider.openrouter.models` in your global config.
 - `name` - Human-readable name
 - `contextWindow` - Maximum context length
 - `pricing` - Input/output pricing information
+- `max_completion_tokens` - Maximum completion length
+- `supported_parameters` - Parameters the model supports
+- `default_parameters` - Default parameter values
+- `is_moderated` - Whether the model has content moderation enabled
 
-The sync logic:
+Example model entry:
+
+```json
+{
+  "id": "openai/gpt-4o",
+  "name": "GPT-4o",
+  "contextWindow": 128000,
+  "pricing": { "prompt": "2.50", "completion": "10.00" },
+  "max_completion_tokens": 16384,
+  "supported_parameters": ["temperature", "max_tokens", "top_p"],
+  "default_parameters": { "temperature": 0.7 },
+  "is_moderated": true
+}
+```
 - Only adds models that don't already exist
 - Never removes or overwrites existing models
 - Preserves any custom model configurations you have

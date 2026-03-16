@@ -391,3 +391,285 @@ describe('deepMerge logic (via writeConfig)', () => {
     expect(parsed.newTopLevel).toBe('brand new');
   });
 });
+
+describe('new field extraction', () => {
+  // Helper to create mock model with new fields
+  function createMockModelWithNewFields(overrides: Partial<import('../src/types').OpenRouterModel> = {}) {
+    return {
+      id: 'test-model-new',
+      canonical_slug: 'test-model-new',
+      hugging_face_id: 'hf/test-new',
+      name: 'Test Model New',
+      created: 1700000000,
+      description: 'A test model for new fields',
+      context_length: 8192,
+      architecture: {
+        modality: 'text',
+        input_modalities: ['text'],
+        output_modalities: ['text'],
+        tokenizer: 'test-tokenizer',
+        instruct_type: 'chat',
+      },
+      pricing: {
+        prompt: '0.001',
+        completion: '0.002',
+        input_cache_read: '0.0001',
+      },
+      top_provider: {
+        context_length: 8192,
+        max_completion_tokens: 4096,
+        is_moderated: true,
+      },
+      per_request_limits: null,
+      supported_parameters: ['temperature', 'max_tokens', 'top_p', 'tools', 'stop'],
+      default_parameters: {
+        temperature: 0.7,
+        top_p: null,
+        top_k: null,
+        frequency_penalty: null,
+        presence_penalty: null,
+        repetition_penalty: null,
+      },
+      expiration_date: null,
+      ...overrides,
+    };
+  }
+
+  test('max_completion_tokens extracted from top_provider', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      top_provider: { context_length: 8192, max_completion_tokens: 4096, is_moderated: true }
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    expect(parsed.provider.openrouter.models['test-model-new'].max_completion_tokens).toBeDefined();
+    expect(parsed.provider.openrouter.models['test-model-new'].max_completion_tokens).toEqual(4096);
+  });
+
+  test('supported_parameters filtered to useful subset', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      supported_parameters: ['temperature', 'max_tokens', 'top_p', 'tools', 'stop', 'unknown_param']
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    expect(parsed.provider.openrouter.models['test-model-new'].supported_parameters).toBeDefined();
+    // Should filter to useful parameters: tools, temperature, top_p, top_k, etc.
+    const params = parsed.provider.openrouter.models['test-model-new'].supported_parameters;
+    expect(params).toContain('temperature');
+    expect(params).toContain('tools');
+    expect(params).not.toContain('unknown_param');
+  });
+
+  test('default_parameters passed through', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      default_parameters: {
+        temperature: 0.7,
+        top_p: null,
+        top_k: null,
+        frequency_penalty: null,
+        presence_penalty: null,
+        repetition_penalty: null,
+      }
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    expect(parsed.provider.openrouter.models['test-model-new'].default_parameters).toBeDefined();
+    expect(parsed.provider.openrouter.models['test-model-new'].default_parameters).toEqual({
+      temperature: 0.7,
+      top_p: null,
+      top_k: null,
+      frequency_penalty: null,
+      presence_penalty: null,
+      repetition_penalty: null,
+    });
+  });
+
+  test('is_moderated extracted from top_provider', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      top_provider: { context_length: 8192, max_completion_tokens: 4096, is_moderated: true }
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    expect(parsed.provider.openrouter.models['test-model-new'].is_moderated).toBeDefined();
+    expect(parsed.provider.openrouter.models['test-model-new'].is_moderated).toEqual(true);
+  });
+
+  test('top_provider undefined → should omit max_completion_tokens and is_moderated', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      top_provider: undefined as any
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    expect(parsed.provider.openrouter.models['test-model-new'].max_completion_tokens).toBeUndefined();
+    expect(parsed.provider.openrouter.models['test-model-new'].is_moderated).toBeUndefined();
+  });
+
+  test('supported_parameters undefined → should omit field', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      supported_parameters: undefined as any
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    expect(parsed.provider.openrouter.models['test-model-new'].supported_parameters).toBeUndefined();
+  });
+
+  test('supported_parameters empty array after filter → should omit field', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      supported_parameters: ['unknown1', 'unknown2']
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    // After filtering to useful subset, should be empty → omit field
+    expect(parsed.provider.openrouter.models['test-model-new'].supported_parameters).toBeUndefined();
+  });
+
+  test('default_parameters undefined → should omit field', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      default_parameters: undefined as any
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    expect(parsed.provider.openrouter.models['test-model-new'].default_parameters).toBeUndefined();
+  });
+
+  test('default_parameters with null values → should preserve nulls', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+    
+    await fs.writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }), 'utf-8');
+    
+    const mockModel = createMockModelWithNewFields({
+      default_parameters: {
+        temperature: null,
+        top_p: null,
+        top_k: null,
+        frequency_penalty: null,
+        presence_penalty: null,
+        repetition_penalty: null,
+      }
+    });
+    
+    const result = await updateModels([mockModel], configPath);
+    
+    expect(result.added).toBe(1);
+    
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    
+    // Should preserve null values in default_parameters
+    expect(parsed.provider.openrouter.models['test-model-new'].default_parameters).toBeDefined();
+    expect(parsed.provider.openrouter.models['test-model-new'].default_parameters).toEqual({
+      temperature: null,
+      top_p: null,
+      top_k: null,
+      frequency_penalty: null,
+      presence_penalty: null,
+      repetition_penalty: null,
+    });
+  });
+});
