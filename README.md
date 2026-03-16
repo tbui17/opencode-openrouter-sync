@@ -54,6 +54,22 @@ Add to your config:
 
 ## Usage
 
+### Quick Start
+
+1. Install the plugin:
+   ```bash
+   npm install -g opencode-openrouter-sync
+   ```
+
+2. Add to your OpenCode config (`~/.config/opencode/opencode.json`):
+   ```json
+   {
+     "plugin": ["opencode-openrouter-sync"]
+   }
+   ```
+
+3. Restart OpenCode — models will sync automatically on first run.
+
 ### Automatic Sync
 
 The plugin automatically syncs models on first startup. After that, it checks if 24 hours have passed since the last successful sync and runs automatically when you start OpenCode.
@@ -68,6 +84,22 @@ Run the manual sync command anytime:
 
 This forces an immediate sync regardless of when the last sync occurred.
 
+### Programmatic Usage
+
+You can also use the sync functionality programmatically in your own code:
+
+```typescript
+import { syncModels, fetchModels } from 'opencode-openrouter-sync';
+
+// Full sync with config
+const result = await syncModels();
+console.log(`Added ${result.added} models, skipped ${result.skipped}`);
+
+// Fetch models without updating config
+const models = await fetchModels();
+console.log(`Fetched ${models.length} models from OpenRouter`);
+```
+
 ### Verifying Sync
 
 After a sync, you can verify the models were added:
@@ -77,6 +109,20 @@ cat ~/.config/opencode/opencode.json | jq '.provider.openrouter.models | keys | 
 ```
 
 This should show a number greater than 400, representing all available OpenRouter models.
+
+### Viewing Synced Models
+
+List all synced OpenRouter models:
+
+```bash
+cat ~/.config/opencode/opencode.json | jq '.provider.openrouter.models | to_entries | .[].key'
+```
+
+Check a specific model:
+
+```bash
+cat ~/.config/opencode/opencode.json | jq '.provider.openrouter.models["openai/gpt-4o"]'
+```
 
 ## Configuration
 
