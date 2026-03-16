@@ -10,6 +10,10 @@ A plugin for OpenCode that automatically syncs available models from OpenRouter'
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for version history.
+
 ## Features
 
 - Automatic model sync on startup (once per 24 hours)
