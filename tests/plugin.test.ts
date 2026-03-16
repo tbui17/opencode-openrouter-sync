@@ -146,14 +146,18 @@ describe('performSync', () => {
 });
 
 describe('OpenRouterModelSyncPlugin', () => {
-  test('plugin init logs initialization message', async () => {
+  test('plugin init logs installed notification', async () => {
     const { default: plugin } = await import('../src/plugin');
     const { ctx, logs } = createMockCtx();
 
     const handlers = await plugin(ctx);
 
     const messages = logs.map((l: any) => l.body?.message);
-    expect(messages).toContain('OpenRouter Model Sync plugin initialized');
+    expect(messages).toContain('OpenRouter Model Sync plugin installed');
+    const notification = logs.find((l: any) => l.body?.message === 'OpenRouter Model Sync plugin installed') as any;
+    expect(notification.body.extra.notification).toBe(true);
+    expect(notification.body.extra.title).toBe('OpenRouter Model Sync');
+    expect(notification.body.extra.description).toContain('Plugin installed successfully');
     expect(handlers['session.created']).toBeFunction();
   });
 });

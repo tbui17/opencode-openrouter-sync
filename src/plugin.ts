@@ -153,7 +153,13 @@ export default async function OpenRouterModelSyncPlugin(ctx: PluginContext) {
     body: {
       service: SERVICE_NAME,
       level: "info",
-      message: "OpenRouter Model Sync plugin initialized",
+      message: "OpenRouter Model Sync plugin installed",
+      extra: {
+        notification: true,
+        title: "OpenRouter Model Sync",
+        description:
+          "Plugin installed successfully. Models will sync automatically every 24 hours.",
+      },
     },
   });
 
