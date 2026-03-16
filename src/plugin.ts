@@ -25,7 +25,7 @@ export interface SyncDeps {
     models: OpenRouterModel[],
     configPath?: string,
     log?: (msg: string) => void,
-  ) => Promise<{ added: number; skipped: number }>;
+  ) => Promise<{ added: number; skipped: number; removed: number }>;
 }
 
 const defaultDeps: SyncDeps = {
@@ -112,6 +112,7 @@ export async function performSync(
         extra: {
           added: result.added,
           skipped: result.skipped,
+          removed: result.removed,
         },
       },
     });

@@ -52,7 +52,7 @@ function createDeps(overrides: Partial<SyncDeps> = {}): SyncDeps {
     writeCache: mock(async () => {}),
     isCacheValid: mock(() => false),
     fetchModels: mock(async () => [createMockModel('test/model')]),
-    updateModels: mock(async () => ({ added: 1, skipped: 0 })),
+    updateModels: mock(async () => ({ added: 1, skipped: 0, removed: 0 })),
     ...overrides,
   };
 }
@@ -78,7 +78,7 @@ describe('performSync', () => {
     const models = [createMockModel('new/model')];
     const deps = createDeps({
       fetchModels: mock(async () => models),
-      updateModels: mock(async () => ({ added: 1, skipped: 0 })),
+      updateModels: mock(async () => ({ added: 1, skipped: 0, removed: 0 })),
     });
 
     await performSync(ctx, deps);

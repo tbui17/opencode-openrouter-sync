@@ -493,6 +493,7 @@ describe('updateModels', () => {
 
     expect(result.added).toBe(0);
     expect(result.skipped).toBe(1);
+    expect(result.removed).toBe(0);
   });
 
   test('handles missing config gracefully', async () => {
@@ -511,6 +512,77 @@ describe('updateModels', () => {
 
     const result = await updateModels(mockModels as OpenRouterModel[], configPath);
     expect(result.added).toBe(1);
+  });
+
+  test('removes models no longer in API response', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+
+    const existingConfig = {
+      provider: {
+        openrouter: {
+          models: {
+            'active-model': { name: 'Active' },
+            'stale-model-1': { name: 'Stale 1' },
+            'stale-model-2': { name: 'Stale 2' },
+          }
+        }
+      }
+    };
+
+    await fs.writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+
+    // API only returns active-model
+    const mockModels = [
+      createMockModelWithDefaults({ id: 'active-model', name: 'Active' }),
+    ];
+
+    const result = await updateModels(mockModels as OpenRouterModel[], configPath);
+
+    expect(result.removed).toBe(2);
+    expect(result.skipped).toBe(1);
+    expect(result.added).toBe(0);
+
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    const models = parsed.provider.openrouter.models;
+
+    expect(models['active-model']).toBeDefined();
+    expect(models['stale-model-1']).toBeUndefined();
+    expect(models['stale-model-2']).toBeUndefined();
+  });
+
+  test('removes all models when API returns completely new set', async () => {
+    const fs = await import('fs/promises');
+    const configPath = testConfigPath();
+
+    const existingConfig = {
+      provider: {
+        openrouter: {
+          models: {
+            'old-model': { name: 'Old' },
+          }
+        }
+      }
+    };
+
+    await fs.writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+
+    const mockModels = [
+      createMockModelWithDefaults({ id: 'brand-new-model', name: 'Brand New' }),
+    ];
+
+    const result = await updateModels(mockModels as OpenRouterModel[], configPath);
+
+    expect(result.removed).toBe(1);
+    expect(result.added).toBe(1);
+
+    const content = await fs.readFile(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    const models = parsed.provider.openrouter.models;
+
+    expect(models['old-model']).toBeUndefined();
+    expect(models['brand-new-model']).toBeDefined();
   });
 });
 
