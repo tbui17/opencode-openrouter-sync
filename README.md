@@ -1,5 +1,9 @@
 # OpenRouter Model Sync Plugin
 
+[![npm version](https://img.shields.io/npm/v/opencode-openrouter-sync.svg)](https://www.npmjs.com/package/opencode-openrouter-sync)
+[![CI](https://github.com/tbui17/opencode-openrouter-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/tbui17/opencode-openrouter-sync/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A plugin for OpenCode that automatically syncs available models from OpenRouter's public API to your global configuration.
 
 ## Features
@@ -31,7 +35,7 @@ Then add the plugin to your OpenCode config at `~/.config/opencode/opencode.json
 Clone this repository and build:
 
 ```bash
-git clone https://github.com/yourusername/opencode-openrouter-sync.git
+git clone https://github.com/tbui17/opencode-openrouter-sync.git
 cd opencode-openrouter-sync
 npm install
 npm run build
