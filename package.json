@@ -35,6 +35,14 @@
     "models"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tbui17/opencode-openrouter-sync.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tbui17/opencode-openrouter-sync/issues"
+  },
+  "homepage": "https://github.com/tbui17/opencode-openrouter-sync#readme",
   "peerDependencies": {
     "@opencode-ai/plugin": "*"
   },
