@@ -1,14 +1,7 @@
 /**
  * Integration tests for OpenRouter Model Sync Plugin
  *
- * Tests the full sync flow:
- * 1. Check cache validity
- * 2. Fetch models from API (mocked)
- * 3. Diff against existing config
- * 4. Update config with new models
- * 5. Write cache
- *
- * Uses temporary directories to avoid polluting user files.
+ * Tests the full sync flow using actual functions (not re-implementations).
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
@@ -28,11 +21,11 @@ import {
   writeConfig,
   updateModels,
   getGlobalConfigPath,
+  convertToConfigModel,
 } from '../src/config.js';
 import { fetchModels } from '../src/api.js';
 import type { OpenRouterModel, CacheData } from '../src/types.js';
 
-// Helper to create mock OpenRouter models
 function createMockModel(id: string, overrides?: Partial<OpenRouterModel>): OpenRouterModel {
   return {
     id,
@@ -71,19 +64,16 @@ function createMockModel(id: string, overrides?: Partial<OpenRouterModel>): Open
     },
     expiration_date: null,
     ...overrides,
-  };
+  } as OpenRouterModel;
 }
 
 describe('Integration Tests - Full Sync Flow', () => {
   let tempDir: string;
   let cacheDir: string;
   let configPath: string;
-
-  // Store original fetch for restoration
   let originalFetch: typeof globalThis.fetch;
 
   beforeEach(async () => {
-    // Create temporary directory for test isolation
     tempDir = join(tmpdir(), `openrouter-sync-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     cacheDir = join(tempDir, 'cache');
     configPath = join(tempDir, 'config', 'opencode.json');
@@ -91,15 +81,11 @@ describe('Integration Tests - Full Sync Flow', () => {
     await mkdir(cacheDir, { recursive: true });
     await mkdir(join(tempDir, 'config'), { recursive: true });
 
-    // Store original fetch
     originalFetch = globalThis.fetch;
   });
 
   afterEach(async () => {
-    // Restore original fetch
     globalThis.fetch = originalFetch;
-
-    // Clean up temp directory
     try {
       await rm(tempDir, { recursive: true, force: true });
     } catch {
@@ -110,10 +96,7 @@ describe('Integration Tests - Full Sync Flow', () => {
   describe('Cache Operations', () => {
     it('should write and read cache correctly', async () => {
       const models = [createMockModel('test-model-1'), createMockModel('test-model-2')];
-      const cacheData: CacheData = {
-        models,
-        timestamp: Date.now(),
-      };
+      const cacheData: CacheData = { models, timestamp: Date.now() };
 
       await writeCache(cacheData, { cacheDir });
 
@@ -131,19 +114,17 @@ describe('Integration Tests - Full Sync Flow', () => {
     it('should validate cache within TTL', async () => {
       const cacheData: CacheData = {
         models: [createMockModel('test')],
-        timestamp: Date.now() - 1000, // 1 second ago
+        timestamp: Date.now() - 1000,
       };
-
-      expect(isCacheValid(cacheData, 60000)).toBe(true); // 60 second TTL
+      expect(isCacheValid(cacheData, 60000)).toBe(true);
     });
 
     it('should invalidate cache outside TTL', async () => {
       const cacheData: CacheData = {
         models: [createMockModel('test')],
-        timestamp: Date.now() - 86400001, // 24 hours + 1ms ago
+        timestamp: Date.now() - 86400001,
       };
-
-      expect(isCacheValid(cacheData, 86400000)).toBe(false); // 24 hour TTL
+      expect(isCacheValid(cacheData, 86400000)).toBe(false);
     });
 
     it('should clear cache successfully', async () => {
@@ -159,16 +140,22 @@ describe('Integration Tests - Full Sync Flow', () => {
       expect(cleared).toBe(true);
       expect(await readCache({ cacheDir })).toBeNull();
     });
+
+    it('should handle corrupted cache gracefully', async () => {
+      const cachePath = getCachePath({ cacheDir });
+      await writeFile(cachePath, '{ corrupted json!!!', 'utf-8');
+
+      const readData = await readCache({ cacheDir });
+      expect(readData).toBeNull();
+    });
   });
 
   describe('Config Operations', () => {
     it('should create default config when file does not exist', async () => {
-      // Use a non-existent path in temp directory for isolation
       const nonExistentConfig = join(tempDir, 'nonexistent', 'config.json');
-
       const config = await readConfig(nonExistentConfig);
       expect(config).not.toBeNull();
-      expect(config?.provider).toBeDefined();
+      expect((config as any)?.provider).toBeDefined();
     });
 
     it('should read existing config file', async () => {
@@ -176,19 +163,13 @@ describe('Integration Tests - Full Sync Flow', () => {
         provider: {
           openrouter: {
             models: {
-              'existing-model': {
-                id: 'existing-model',
-                name: 'Existing Model',
-                provider: 'openrouter',
-              },
+              'existing-model': { name: 'Existing Model' },
             },
           },
         },
       };
 
       await writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
-
-      // Read from the temp config path for isolation
       const testConfig = await readConfig(configPath);
       expect(testConfig).not.toBeNull();
     });
@@ -199,9 +180,7 @@ describe('Integration Tests - Full Sync Flow', () => {
           openrouter: {
             models: {
               'model-1': {
-                id: 'model-1',
                 name: 'Custom Model Name',
-                provider: 'openrouter',
                 customField: 'should-be-preserved',
               },
             },
@@ -212,16 +191,65 @@ describe('Integration Tests - Full Sync Flow', () => {
 
       await writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
 
-      // Read and verify structure
       const content = await readFile(configPath, 'utf-8');
       const parsed = JSON.parse(content);
       expect(parsed.otherSetting).toBe('preserved');
       expect(parsed.provider.openrouter.models['model-1'].customField).toBe('should-be-preserved');
     });
+
+    it('should read JSONC config files with comments', async () => {
+      const jsoncContent = [
+        '{',
+        '  // Global settings',
+        '  "provider": {',
+        '    "openrouter": {',
+        '      /* model definitions */',
+        '      "models": {',
+        '        "test/model": { "name": "Test" }',
+        '      }',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n');
+
+      await writeFile(configPath, jsoncContent, 'utf-8');
+
+      const config = await readConfig(configPath);
+      expect(config).not.toBeNull();
+      expect((config as any).provider.openrouter.models['test/model'].name).toBe('Test');
+    });
+
+    it('should preserve other providers when updating openrouter models', async () => {
+      const existingConfig = {
+        provider: {
+          openrouter: {
+            models: {}
+          },
+          anthropic: {
+            models: {
+              'claude-3': { name: 'Claude 3' }
+            }
+          }
+        }
+      };
+
+      await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+
+      const mockModels = [createMockModel('openai/gpt-4')];
+      await updateModels(mockModels, configPath);
+
+      const content = await readFile(configPath, 'utf-8');
+      const parsed = JSON.parse(content);
+
+      // OpenRouter model added
+      expect(parsed.provider.openrouter.models['openai/gpt-4']).toBeDefined();
+      // Anthropic provider preserved
+      expect(parsed.provider.anthropic.models['claude-3'].name).toBe('Claude 3');
+    });
   });
 
   describe('Full Sync Flow', () => {
-    it('should complete full sync: check cache → fetch → diff → update → write', async () => {
+    it('should complete full sync using actual updateModels()', async () => {
       // Step 1: Verify cache is empty initially
       const initialCache = await readCache({ cacheDir });
       expect(initialCache).toBeNull();
@@ -250,9 +278,7 @@ describe('Integration Tests - Full Sync Flow', () => {
           openrouter: {
             models: {
               'openai/gpt-4': {
-                id: 'openai/gpt-4',
                 name: 'Existing GPT-4',
-                provider: 'openrouter',
                 customField: 'preserved',
               },
             },
@@ -261,45 +287,30 @@ describe('Integration Tests - Full Sync Flow', () => {
       };
       await writeFile(configPath, JSON.stringify(initialConfig, null, 2), 'utf-8');
 
-      // Step 5: Update models (diff and add)
-      const logMessages: string[] = [];
-      const mockLog = (msg: string) => logMessages.push(msg);
+      // Step 5: Use actual updateModels() instead of reimplementing the logic
+      const result = await updateModels(fetchedModels!, configPath);
 
-      // Manually simulate the update to test the sync flow logic
-      const config = JSON.parse(await readFile(configPath, 'utf-8'));
-      let added = 0;
-      let skipped = 0;
-
-      for (const model of fetchedModels || []) {
-        if (model.id in config.provider.openrouter.models) {
-          skipped++;
-        } else {
-          config.provider.openrouter.models[model.id] = {
-            id: model.id,
-            name: model.name,
-            provider: 'openrouter',
-            context_length: model.context_length,
-            pricing: {
-              prompt: parseFloat(model.pricing.prompt) || 0,
-              completion: parseFloat(model.pricing.completion) || 0,
-            },
-          };
-          added++;
-        }
-      }
-
-      expect(added).toBe(1); // Only anthropic/claude-3 is new
-      expect(skipped).toBe(1); // openai/gpt-4 already exists
+      expect(result.added).toBe(1); // Only anthropic/claude-3 is new
+      expect(result.skipped).toBe(1); // openai/gpt-4 already exists
 
       // Step 6: Verify existing model is preserved
-      expect(config.provider.openrouter.models['openai/gpt-4'].customField).toBe('preserved');
-      expect(config.provider.openrouter.models['openai/gpt-4'].name).toBe('Existing GPT-4');
+      const finalContent = await readFile(configPath, 'utf-8');
+      const finalConfig = JSON.parse(finalContent);
+      expect(finalConfig.provider.openrouter.models['openai/gpt-4'].customField).toBe('preserved');
+      expect(finalConfig.provider.openrouter.models['openai/gpt-4'].name).toBe('Existing GPT-4');
 
-      // Step 7: Write updated config
-      await writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+      // Step 7: Verify new model was added with correct format
+      const addedModel = finalConfig.provider.openrouter.models['anthropic/claude-3'];
+      expect(addedModel).toBeDefined();
+      expect(addedModel.cost).toBeDefined();
+      expect(addedModel.limit).toBeDefined();
+      // Should NOT have old-format fields
+      expect(addedModel.id).toBeUndefined();
+      expect(addedModel.provider).toBeUndefined();
+      expect(addedModel.pricing).toBeUndefined();
 
       // Step 8: Write cache
-      await writeCache({ models: fetchedModels || [], timestamp: Date.now() }, { cacheDir });
+      await writeCache({ models: fetchedModels!, timestamp: Date.now() }, { cacheDir });
 
       // Step 9: Verify cache is now valid
       const finalCache = await readCache({ cacheDir });
@@ -307,26 +318,19 @@ describe('Integration Tests - Full Sync Flow', () => {
       expect(isCacheValid(finalCache!, 86400000)).toBe(true);
 
       // Step 10: Verify final config
-      const finalConfig = JSON.parse(await readFile(configPath, 'utf-8'));
       expect(Object.keys(finalConfig.provider.openrouter.models)).toHaveLength(2);
-      expect(finalConfig.provider.openrouter.models['anthropic/claude-3']).toBeDefined();
     });
 
     it('should skip sync when cache is valid', async () => {
-      // Write a valid cache
       const mockModels = [createMockModel('cached-model')];
       await writeCache(
         { models: mockModels, timestamp: Date.now() },
         { cacheDir }
       );
 
-      // Verify cache is valid
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
       expect(isCacheValid(cache!, 86400000)).toBe(true);
-
-      // In the real flow, this would skip the API call
-      // We verify the cache mechanism works correctly
     });
 
     it('should handle empty model list gracefully', async () => {
@@ -338,36 +342,29 @@ describe('Integration Tests - Full Sync Flow', () => {
       });
 
       const models = await fetchModels();
-      expect(models).toBeNull(); // API returns null for empty data
+      expect(models).toBeNull();
     });
   });
 
   describe('Error Handling', () => {
     it('should handle API failure gracefully', async () => {
-      // Step 1: Create a stale cache
       const staleModels = [createMockModel('stale-model')];
       await writeCache(
-        { models: staleModels, timestamp: Date.now() - 86400001 }, // Expired
+        { models: staleModels, timestamp: Date.now() - 86400001 },
         { cacheDir }
       );
 
-      // Step 2: Mock API failure
       globalThis.fetch = mock(async () => {
         throw new Error('Network error');
       });
 
-      // Step 3: Fetch should return null on failure
       const fetchedModels = await fetchModels();
       expect(fetchedModels).toBeNull();
 
-      // Step 4: Read the stale cache as fallback
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
       expect(cache?.models).toHaveLength(1);
       expect(cache?.models[0].id).toBe('stale-model');
-
-      // The actual plugin would use cached data when API fails
-      // This simulates that behavior
     });
 
     it('should handle HTTP error responses', async () => {
@@ -418,95 +415,80 @@ describe('Integration Tests - Full Sync Flow', () => {
     });
   });
 
-  describe('Model Diff Logic', () => {
+  describe('Model Diff Logic (using actual updateModels)', () => {
     it('should only add new models and skip existing ones', async () => {
-      const existingModels = {
-        'model-a': { id: 'model-a', name: 'Model A', provider: 'openrouter' },
-        'model-b': { id: 'model-b', name: 'Model B', provider: 'openrouter' },
-      };
-
-      const fetchedModels = [
-        createMockModel('model-a'), // Already exists
-        createMockModel('model-b'), // Already exists
-        createMockModel('model-c'), // New
-        createMockModel('model-d'), // New
-      ];
-
-      // Simulate the diff logic
-      let added = 0;
-      let skipped = 0;
-      const resultModels = { ...existingModels };
-
-      for (const model of fetchedModels) {
-        if (model.id in resultModels) {
-          skipped++;
-        } else {
-          resultModels[model.id] = {
-            id: model.id,
-            name: model.name,
-            provider: 'openrouter',
-          };
-          added++;
-        }
-      }
-
-      expect(added).toBe(2); // model-c and model-d
-      expect(skipped).toBe(2); // model-a and model-b
-      expect(Object.keys(resultModels)).toHaveLength(4);
-    });
-
-    it('should preserve custom fields on existing models', async () => {
-      const existingModels = {
-        'model-a': {
-          id: 'model-a',
-          name: 'Custom Name',
-          provider: 'openrouter',
-          customField: 'custom-value',
-          context_length: 8192,
+      const existingConfig = {
+        provider: {
+          openrouter: {
+            models: {
+              'model-a': { name: 'Model A' },
+              'model-b': { name: 'Model B' },
+            },
+          },
         },
       };
 
+      await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+
+      const fetchedModels = [
+        createMockModel('model-a'),
+        createMockModel('model-b'),
+        createMockModel('model-c'),
+        createMockModel('model-d'),
+      ];
+
+      const result = await updateModels(fetchedModels, configPath);
+
+      expect(result.added).toBe(2); // model-c and model-d
+      expect(result.skipped).toBe(2); // model-a and model-b
+
+      const content = await readFile(configPath, 'utf-8');
+      const parsed = JSON.parse(content);
+      expect(Object.keys(parsed.provider.openrouter.models)).toHaveLength(4);
+    });
+
+    it('should preserve custom fields on existing models', async () => {
+      const existingConfig = {
+        provider: {
+          openrouter: {
+            models: {
+              'model-a': {
+                name: 'Custom Name',
+                customField: 'custom-value',
+                limit: { context: 8192 },
+              },
+            },
+          },
+        },
+      };
+
+      await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+
       const fetchedModels = [createMockModel('model-a', { context_length: 4096 })];
+      const result = await updateModels(fetchedModels, configPath);
 
-      // Simulate merge - existing should not be overwritten
-      const resultModels = { ...existingModels };
+      expect(result.skipped).toBe(1);
 
-      for (const model of fetchedModels) {
-        if (!(model.id in resultModels)) {
-          resultModels[model.id] = {
-            id: model.id,
-            name: model.name,
-            provider: 'openrouter',
-            context_length: model.context_length,
-          };
-        }
-      }
-
-      // Original values preserved
-      expect(resultModels['model-a'].name).toBe('Custom Name');
-      expect(resultModels['model-a'].customField).toBe('custom-value');
-      expect(resultModels['model-a'].context_length).toBe(8192);
+      const content = await readFile(configPath, 'utf-8');
+      const parsed = JSON.parse(content);
+      expect(parsed.provider.openrouter.models['model-a'].name).toBe('Custom Name');
+      expect(parsed.provider.openrouter.models['model-a'].customField).toBe('custom-value');
+      expect(parsed.provider.openrouter.models['model-a'].limit.context).toBe(8192);
     });
 
     it('should skip models without IDs', async () => {
+      await writeFile(configPath, JSON.stringify({
+        provider: { openrouter: { models: {} } }
+      }), 'utf-8');
+
       const fetchedModels = [
         createMockModel('valid-model'),
-        { ...createMockModel(''), id: '' }, // Invalid model without ID
+        { ...createMockModel(''), id: '' },
       ];
 
-      let skipped = 0;
-      const validModels = [];
-
-      for (const model of fetchedModels) {
-        if (!model.id) {
-          skipped++;
-        } else {
-          validModels.push(model);
-        }
-      }
-
-      expect(skipped).toBe(1);
-      expect(validModels).toHaveLength(1);
+      const result = await updateModels(fetchedModels, configPath);
+      expect(result.added).toBe(1);
+      expect(result.skipped).toBe(1);
     });
   });
 
@@ -548,7 +530,6 @@ describe('End-to-End Sync Scenarios', () => {
   });
 
   it('should handle first-time sync with no existing cache or config', async () => {
-    // Mock API returning models
     const apiModels = [
       createMockModel('provider1/model-1'),
       createMockModel('provider2/model-2'),
@@ -562,35 +543,29 @@ describe('End-to-End Sync Scenarios', () => {
       });
     });
 
-    // Step 1: Check cache (empty)
     const cache = await readCache({ cacheDir });
     expect(cache).toBeNull();
 
-    // Step 2: Fetch from API
     const models = await fetchModels();
     expect(models).toHaveLength(3);
 
-    // Step 3: Write cache
     await writeCache({ models: models!, timestamp: Date.now() }, { cacheDir });
 
-    // Step 4: Verify cache written
     const writtenCache = await readCache({ cacheDir });
     expect(writtenCache).not.toBeNull();
     expect(writtenCache?.models).toHaveLength(3);
   });
 
   it('should handle daily re-sync with existing cache', async () => {
-    // Write an expired cache (simulating daily re-sync)
     const oldModels = [createMockModel('old-model')];
     await writeCache(
-      { models: oldModels, timestamp: Date.now() - 86400001 }, // Expired
+      { models: oldModels, timestamp: Date.now() - 86400001 },
       { cacheDir }
     );
 
-    // Mock API returning new models
     const newModels = [
-      createMockModel('old-model'), // Still exists in API
-      createMockModel('new-model'), // New in API
+      createMockModel('old-model'),
+      createMockModel('new-model'),
     ];
 
     globalThis.fetch = mock(async () => {
@@ -600,44 +575,35 @@ describe('End-to-End Sync Scenarios', () => {
       });
     });
 
-    // Step 1: Check cache (expired)
     const cache = await readCache({ cacheDir });
     expect(cache).not.toBeNull();
     expect(isCacheValid(cache!, 86400000)).toBe(false);
 
-    // Step 2: Fetch from API
     const models = await fetchModels();
     expect(models).toHaveLength(2);
 
-    // Step 3: Update cache
     await writeCache({ models: models!, timestamp: Date.now() }, { cacheDir });
 
-    // Step 4: Verify updated cache
     const updatedCache = await readCache({ cacheDir });
     expect(updatedCache?.models).toHaveLength(2);
     expect(updatedCache?.models.some((m) => m.id === 'new-model')).toBe(true);
   });
 
   it('should use cached data when API is unavailable', async () => {
-    // Write a valid cache
     const cachedModels = [createMockModel('cached-model-1'), createMockModel('cached-model-2')];
     await writeCache({ models: cachedModels, timestamp: Date.now() }, { cacheDir });
 
-    // Mock API failure
     globalThis.fetch = mock(async () => {
       throw new Error('Network unavailable');
     });
 
-    // Step 1: Check cache (valid)
     const cache = await readCache({ cacheDir });
     expect(cache).not.toBeNull();
     expect(isCacheValid(cache!, 86400000)).toBe(true);
 
-    // Step 2: Try fetch (fails)
     const models = await fetchModels();
     expect(models).toBeNull();
 
-    // Step 3: Fall back to cached data
     const fallbackCache = await readCache({ cacheDir });
     expect(fallbackCache?.models).toHaveLength(2);
     expect(fallbackCache?.models[0].id).toBe('cached-model-1');
