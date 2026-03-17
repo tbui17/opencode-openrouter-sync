@@ -9,25 +9,30 @@
  *   import { syncModels } from 'opencode-openrouter-sync/sync'
  */
 
-import OpenRouterModelSyncPlugin from './plugin.js';
+import OpenRouterModelSyncPlugin from "./plugin.js";
 
-// Type-only exports are safe - OpenCode doesn't try to call types
 export type {
-  OpenRouterModel,
-  OpenRouterResponse,
-  CacheData,
-  SyncConfig,
-  PluginOptions,
-  PluginContext,
-  SyncResult,
-  ModelFilter,
-  OpenCodeModelEntry,
-  ConfigModelEntry,
-  ModelArchitecture,
-  ModelPricing,
-  TopProvider,
-  DefaultParameters,
-} from './types.js';
+	AppendPromptOptions,
+	ToastOptions,
+	ToastVariant,
+	TuiClient,
+} from "./tui.js";
 
-// Default export is the plugin function
+export type {
+	CacheData,
+	ConfigModelEntry,
+	DefaultParameters,
+	ModelArchitecture,
+	ModelFilter,
+	ModelPricing,
+	OpenCodeModelEntry,
+	OpenRouterModel,
+	OpenRouterResponse,
+	PluginContext,
+	PluginOptions,
+	SyncConfig,
+	SyncResult,
+	TopProvider,
+} from "./types.js";
+
 export default OpenRouterModelSyncPlugin;

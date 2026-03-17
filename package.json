@@ -1,59 +1,62 @@
 {
-  "name": "opencode-openrouter-sync",
-  "version": "1.4.0",
-  "description": "OpenCode plugin for OpenRouter model synchronization",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./sync": {
-      "import": "./dist/sync.js",
-      "types": "./dist/sync.d.ts"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "bun test",
-    "test:run": "bun test --run",
-    "typecheck": "tsc --noEmit",
-    "clean": "node -e \"const fs=require('fs');if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true});\"",
-    "prepublishOnly": "tsc"
-  },
-  "keywords": [
-    "opencode",
-    "plugin",
-    "openrouter",
-    "models"
-  ],
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tbui17/opencode-openrouter-sync.git"
-  },
-  "bugs": {
-    "url": "https://github.com/tbui17/opencode-openrouter-sync/issues"
-  },
-  "homepage": "https://github.com/tbui17/opencode-openrouter-sync#readme",
-  "peerDependencies": {
-    "@opencode-ai/plugin": "*"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+	"name": "opencode-openrouter-sync",
+	"version": "1.4.0",
+	"description": "OpenCode plugin for OpenRouter model synchronization",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./sync": {
+			"import": "./dist/sync.js",
+			"types": "./dist/sync.d.ts"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsc --watch",
+		"test": "bun test",
+		"test:run": "bun test --run",
+		"typecheck": "tsc --noEmit",
+		"clean": "node -e \"const fs=require('fs');if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true});\"",
+		"prepublishOnly": "tsc"
+	},
+	"keywords": [
+		"opencode",
+		"plugin",
+		"openrouter",
+		"models"
+	],
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/tbui17/opencode-openrouter-sync.git"
+	},
+	"bugs": {
+		"url": "https://github.com/tbui17/opencode-openrouter-sync/issues"
+	},
+	"homepage": "https://github.com/tbui17/opencode-openrouter-sync#readme",
+	"peerDependencies": {
+		"@opencode-ai/plugin": "*"
+	},
+	"dependencies": {
+		"zod": "^3.24.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.0.0",
+		"typescript": "^5.0.0"
+	},
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }
