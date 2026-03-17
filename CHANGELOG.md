@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.5.0...v1.5.1) (2026-03-17)
+
+
+### Bug Fixes
+
+* make CLI integration test self-contained and add opencode to CI ([#13](https://github.com/tbui17/opencode-openrouter-sync/issues/13)) ([155885f](https://github.com/tbui17/opencode-openrouter-sync/commit/155885fa7a125ad99423209602a6f28a2e9fe26d))
+
 ## [1.5.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.4.0...v1.5.0) (2026-03-17)
 
 
