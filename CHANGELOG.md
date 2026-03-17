@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.4.0...v1.5.0) (2026-03-17)
+
+
+### Features
+
+* add TUI module with Zod schemas for toast notifications ([dd98575](https://github.com/tbui17/opencode-openrouter-sync/commit/dd985755697bbb844f61de6cac8829161e776b8b))
+
+
+### Bug Fixes
+
+* add explicit type annotation to schema to fix TS7056 ([b1d0c9f](https://github.com/tbui17/opencode-openrouter-sync/commit/b1d0c9f8e79723e370d46230d447e92f62e93082))
+* update lockfile after adding zod dependency ([c7ce1f0](https://github.com/tbui17/opencode-openrouter-sync/commit/c7ce1f001c67ef603ca9559db0967411d541f21e))
+
 ## [1.4.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.3.0...v1.4.0) (2026-03-16)
 
 
