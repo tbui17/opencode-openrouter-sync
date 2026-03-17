@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.6.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.5.1...v1.6.0) (2026-03-17)
+
+
+### Features
+
+* add changelog section to README ([0dd5e3f](https://github.com/tbui17/opencode-openrouter-sync/commit/0dd5e3fe72496e73c35d1925c2d9156b0ece98e7))
+* add JSONC support and update model schema to match OpenCode ([#4](https://github.com/tbui17/opencode-openrouter-sync/issues/4)) ([c072f63](https://github.com/tbui17/opencode-openrouter-sync/commit/c072f63229532e5978ee446ac4237d2291c72083))
+* add new model fields from OpenRouter API ([865aa76](https://github.com/tbui17/opencode-openrouter-sync/commit/865aa76ddb144f4fa7654ea680bcc186d84ffe35))
+* add OpenRouter model sync plugin ([5d2e9c7](https://github.com/tbui17/opencode-openrouter-sync/commit/5d2e9c75123f92cbf33c7176071e530c02a92e72))
+* add plugin installed notification ([#9](https://github.com/tbui17/opencode-openrouter-sync/issues/9)) ([99e501c](https://github.com/tbui17/opencode-openrouter-sync/commit/99e501c4f6b55aa99fa2d8eefcb6be3824b95901))
+* add TUI module with Zod schemas for toast notifications ([dd98575](https://github.com/tbui17/opencode-openrouter-sync/commit/dd985755697bbb844f61de6cac8829161e776b8b))
+* remove stale models not present in API response ([#6](https://github.com/tbui17/opencode-openrouter-sync/issues/6)) ([45e662e](https://github.com/tbui17/opencode-openrouter-sync/commit/45e662e7260b5cb3676963f8ed6f8b7d2fcc321c))
+* restructure exports for npm distribution ([7545cc8](https://github.com/tbui17/opencode-openrouter-sync/commit/7545cc87a0383d078b7b8fc1b408dfaaa5862d18))
+* return structured errors from fetchModels and fix release publish ([#8](https://github.com/tbui17/opencode-openrouter-sync/issues/8)) ([39144fc](https://github.com/tbui17/opencode-openrouter-sync/commit/39144fc3ecfd0d31d4c5fc18d26b6ae713820dcc))
+* switch to npm OIDC trusted publishing ([33b5edf](https://github.com/tbui17/opencode-openrouter-sync/commit/33b5edfb608d727b2edb62fe29fb88012d1092e0))
+
+
+### Bug Fixes
+
+* add explicit type annotation to schema to fix TS7056 ([b1d0c9f](https://github.com/tbui17/opencode-openrouter-sync/commit/b1d0c9f8e79723e370d46230d447e92f62e93082))
+* add publishConfig.access: public for npm provenance ([771384f](https://github.com/tbui17/opencode-openrouter-sync/commit/771384f3cc411456009d925e7d35301a1031eab7))
+* add repository field for provenance verification ([165a4e1](https://github.com/tbui17/opencode-openrouter-sync/commit/165a4e1128093acd778e2200c4f966727b419522))
+* add workflow_dispatch to publish.yml ([7d3e681](https://github.com/tbui17/opencode-openrouter-sync/commit/7d3e6817d0e96d6138d8df83ef56a7d516c6947b))
+* isolate tests from real user config ([3679f50](https://github.com/tbui17/opencode-openrouter-sync/commit/3679f50d3a27d69a29a34aef719e8b741effc91a))
+* make CLI integration test self-contained and add opencode to CI ([#13](https://github.com/tbui17/opencode-openrouter-sync/issues/13)) ([155885f](https://github.com/tbui17/opencode-openrouter-sync/commit/155885fa7a125ad99423209602a6f28a2e9fe26d))
+* remove provenance from publish workflow ([4c41e94](https://github.com/tbui17/opencode-openrouter-sync/commit/4c41e941692fb64d837b49b1d32a5bbb50d3c47f))
+* remove provenance from publishConfig for local publish compatibility ([ac0a0ef](https://github.com/tbui17/opencode-openrouter-sync/commit/ac0a0efd1133c66fa757bbbabbbd8e6a598d92bb))
+* update lockfile after adding zod dependency ([c7ce1f0](https://github.com/tbui17/opencode-openrouter-sync/commit/c7ce1f001c67ef603ca9559db0967411d541f21e))
+* use tsc-only prepublishOnly for Node.js CI compatibility ([8eb6d72](https://github.com/tbui17/opencode-openrouter-sync/commit/8eb6d72999b0dba35e48b2bd1e58c0329f3ee801))
+
 ## [1.5.1](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.5.0...v1.5.1) (2026-03-17)
 
 
