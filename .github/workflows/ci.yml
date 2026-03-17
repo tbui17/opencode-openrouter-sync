@@ -18,6 +18,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install opencode CLI
+        run: curl -fsSL https://opencode.ai/install | bash
+
+      - name: Initialize opencode config
+        run: mkdir -p ~/.config/opencode && echo '{"provider":{"openrouter":{}}}' > ~/.config/opencode/opencode.json
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -28,7 +34,7 @@ jobs:
         run: bun run build
 
       - name: Test
-        run: bun test
+        run: bun test --timeout 60000
 
       - name: E2E Tests
         run: bun test tests/e2e/

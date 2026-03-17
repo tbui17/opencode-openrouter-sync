@@ -226,28 +226,23 @@ export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry
   }
 
   // limit: context and output tokens
-  const limit: OpenCodeModelEntry['limit'] = {};
-  if (model.context_length > 0) {
-    limit.context = model.context_length;
-  }
-  if (model.top_provider?.max_completion_tokens) {
-    limit.output = model.top_provider.max_completion_tokens;
-  }
-  if (Object.keys(limit).length > 0) {
-    entry.limit = limit;
+  // Schema requires both context and output when limit is present
+  if (model.context_length > 0 && model.top_provider?.max_completion_tokens) {
+    entry.limit = {
+      context: model.context_length,
+      output: model.top_provider.max_completion_tokens,
+    };
   }
 
   // modalities from architecture
+  // OpenCode schema only allows: text, audio, image, video, pdf
+  // Schema requires both input and output when modalities is present
+  const VALID_MODALITIES = new Set(['text', 'audio', 'image', 'video', 'pdf']);
   if (model.architecture) {
-    const modalities: OpenCodeModelEntry['modalities'] = {};
-    if (model.architecture.input_modalities?.length) {
-      modalities.input = model.architecture.input_modalities;
-    }
-    if (model.architecture.output_modalities?.length) {
-      modalities.output = model.architecture.output_modalities;
-    }
-    if (Object.keys(modalities).length > 0) {
-      entry.modalities = modalities;
+    const inputFiltered = model.architecture.input_modalities?.filter(m => VALID_MODALITIES.has(m));
+    const outputFiltered = model.architecture.output_modalities?.filter(m => VALID_MODALITIES.has(m));
+    if (inputFiltered?.length && outputFiltered?.length) {
+      entry.modalities = { input: inputFiltered, output: outputFiltered };
     }
   }
 
