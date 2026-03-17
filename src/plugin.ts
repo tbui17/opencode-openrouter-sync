@@ -14,26 +14,26 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SERVICE_NAME = "openrouter-sync";
 
 export interface SyncDeps {
-  readCache: () => Promise<CacheData | null>;
-  writeCache: (data: CacheData) => Promise<void>;
-  isCacheValid: (data: CacheData | null, ttlMs: number) => boolean;
+  readCache: (log?: (msg: string) => void) => Promise<CacheData | null>;
+  writeCache: (data: CacheData, log?: (msg: string) => void) => Promise<void>;
+  isCacheValid: (data: CacheData | null, ttlMs: number, log?: (msg: string) => void) => boolean;
   fetchModels: (options?: FetchModelsOptions) => Promise<FetchResult>;
   updateModels: (
     models: OpenRouterModel[],
     configPath?: string,
     log?: (msg: string) => void,
   ) => Promise<{ added: number; skipped: number; removed: number }>;
-  readConfig: () => Promise<Record<string, unknown> | null>;
+  readConfig: (log?: (msg: string) => void) => Promise<Record<string, unknown> | null>;
 }
 
 const defaultDeps: SyncDeps = {
-  readCache: () => readCache(),
-  writeCache: (data) => writeCache(data),
-  isCacheValid: (data, ttlMs) => isCacheValid(data, ttlMs),
+  readCache: (log) => readCache(undefined, log),
+  writeCache: (data, log) => writeCache(data, undefined, log),
+  isCacheValid: (data, ttlMs, log) => isCacheValid(data, ttlMs, log),
   fetchModels: (options) => fetchModels(options),
   updateModels: (models, configPath, log) =>
     updateModels(models, configPath, log),
-  readConfig: () => readConfig(),
+  readConfig: (log) => readConfig(undefined, log),
 };
 
 function getApiUrlFromConfig(config: Record<string, unknown> | null): string | undefined {
@@ -58,10 +58,20 @@ export async function performSync(
 ): Promise<void> {
   const { client } = ctx;
 
-  try {
-    const cached = await deps.readCache();
+  const log = (msg: string) => {
+    client.app.log({
+      body: {
+        service: SERVICE_NAME,
+        level: "debug",
+        message: msg,
+      },
+    });
+  };
 
-    if (cached && deps.isCacheValid(cached, CACHE_TTL_MS)) {
+  try {
+    const cached = await deps.readCache(log);
+
+    if (cached && deps.isCacheValid(cached, CACHE_TTL_MS, log)) {
       client.app.log({
         body: {
           service: SERVICE_NAME,
@@ -84,10 +94,10 @@ export async function performSync(
       },
     });
 
-    const config = await deps.readConfig();
+    const config = await deps.readConfig(log);
     const apiUrl = getApiUrlFromConfig(config);
 
-    const modelsResult = await deps.fetchModels(apiUrl ? { apiUrl } : undefined);
+    const modelsResult = await deps.fetchModels(apiUrl ? { apiUrl, log } : { log });
 
     if ('error' in modelsResult) {
       client.app.log({
@@ -110,19 +120,7 @@ export async function performSync(
       },
     });
 
-    const result = await deps.updateModels(
-      models,
-      undefined,
-      async (msg: string) => {
-        client.app.log({
-          body: {
-            service: SERVICE_NAME,
-            level: "debug",
-            message: msg,
-          },
-        });
-      },
-    );
+    const result = await deps.updateModels(models, undefined, log);
 
     client.app.log({
       body: {
@@ -140,7 +138,7 @@ export async function performSync(
     await deps.writeCache({
       models,
       timestamp: Date.now(),
-    });
+    }, log);
 
     client.app.log({
       body: {

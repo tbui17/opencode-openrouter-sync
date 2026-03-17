@@ -74,6 +74,7 @@ export async function readConfig(
   log?: (msg: string) => void
 ): Promise<Record<string, unknown> | null> {
   const path = configPath ?? await resolveGlobalConfigPath();
+  log?.(`Reading config from ${path}`);
 
   try {
     const exists = await fileExists(path);
@@ -89,19 +90,24 @@ export async function readConfig(
 
     // Ensure provider.openrouter.models exists
     if (!parsed.provider) {
+      log?.('Config missing provider section, initializing');
       parsed.provider = {};
     }
     const provider = parsed.provider as Record<string, unknown>;
 
     if (!provider.openrouter) {
+      log?.('Config missing provider.openrouter section, initializing');
       provider.openrouter = {};
     }
     const openrouter = provider.openrouter as Record<string, unknown>;
 
     if (!openrouter.models || typeof openrouter.models !== 'object') {
+      log?.('Config missing provider.openrouter.models section, initializing');
       openrouter.models = {};
     }
 
+    const modelCount = Object.keys(openrouter.models as Record<string, unknown>).length;
+    log?.(`Config loaded successfully (${modelCount} existing models)`);
     return parsed;
   } catch (error) {
     if (error instanceof SyntaxError) {
@@ -129,6 +135,7 @@ export async function writeConfig(
 ): Promise<boolean> {
   const path = configPath ?? await resolveGlobalConfigPath();
   const shouldMerge = options?.merge !== false; // default true for backward compat
+  log?.(`Writing config to ${path} (merge: ${shouldMerge})`);
 
   try {
     // Ensure directory exists
@@ -141,9 +148,11 @@ export async function writeConfig(
       // Read existing config to merge (if it exists and is valid)
       const existing = await readConfig(configPath, log);
       if (existing) {
+        log?.('Merging with existing config');
         // Deep merge: existing config takes precedence, new values are added
         finalConfig = deepMerge(existing, config);
       } else {
+        log?.('No existing config to merge, using provided config as-is');
         finalConfig = config;
       }
     } else {
@@ -153,6 +162,7 @@ export async function writeConfig(
     // Write with pretty formatting (2-space indent)
     const content = JSON.stringify(finalConfig, null, 2);
     await writeFile(path, content, 'utf-8');
+    log?.(`Config written successfully (${content.length} bytes)`);
 
     return true;
   } catch (error) {
@@ -282,6 +292,7 @@ export async function updateModels(
   configPath?: string,
   log?: (msg: string) => void
 ): Promise<{ added: number; skipped: number; removed: number }> {
+  log?.(`Updating models (${models.length} models from API)`);
   const config = await readConfig(configPath, log);
 
   if (!config) {

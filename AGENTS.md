@@ -162,4 +162,49 @@ Uses **Release Please** for automated versioning and **npm OIDC** for secure pub
 | `fix:` | Patch version bump |
 | `feat!:` or `BREAKING CHANGE:` | Major version bump |
 
-Push to main → Release Please creates PR → Merge → Auto-publishes to npm.
+## Pipeline Overview
+
+```
+Push to main
+  ├─ CI workflow (ci.yml)
+  │    typecheck → build → unit/integration tests → E2E tests
+  └─ Release Please workflow (release-please.yml)
+       ├─ Creates/updates a release PR (bumps version, updates CHANGELOG)
+       └─ On release PR merge → publish job → npm publish via OIDC
+```
+
+## CI Workflow Details (`ci.yml`)
+
+- Runs on: push to main + PRs targeting main
+- Runtime: Bun (latest via `oven-sh/setup-bun@v2`)
+- **opencode CLI is required** for integration tests that run `opencode models`.
+  Install via `curl -fsSL https://opencode.ai/install | bash`.
+- A seed config must exist at `~/.config/opencode/opencode.json` with `{"provider":{"openrouter":{}}}` or the CLI will fail.
+- Tests use `--timeout 60000` because live API + CLI tests need extra time.
+- E2E tests run separately via `bun test tests/e2e/`.
+
+## Release Please Workflow (`release-please.yml`)
+
+- Uses `google-github-actions/release-please-action@v4` with `release-type: node`.
+- Requires permissions: `contents: write`, `pull-requests: write`, `id-token: write`.
+- The `publish` job only runs when `release_created` is true (i.e., a release PR was merged).
+- Publish uses Node.js (not Bun) with `npm ci && npm run build && npm publish --access public`.
+- npm authentication uses OIDC trusted publishing (no `NODE_AUTH_TOKEN` secret needed) — this must be configured on npmjs.com under the package's publishing settings.
+
+## Known Issues & Gotchas
+
+- **Release Please labeling errors**: GitHub API timing issues can cause Release Please to fail at the labeling step with `"Could not resolve to a node with the global id of ..."`. When this happens, the release tag is not created. The next merge will cause Release Please to skip that version and create a new release PR for the next version instead.
+- **Version skips are safe**: If Release Please skips a version (e.g., 1.5.1 → 1.6.0), the pipeline self-corrects — just merge the new release PR.
+- **Integration tests restore config**: Tests that write to the real opencode config (`~/.config/opencode/`) must back up and restore the original content in `beforeEach`/`afterEach` to avoid leaking state between tests.
+
+## Release Verification Script
+
+`scripts/verify-release.ts` polls GitHub Actions and npm to verify the full pipeline:
+
+```bash
+bun scripts/verify-release.ts                        # defaults: 60 attempts, 15s interval
+bun scripts/verify-release.ts --attempts 40 --interval 20
+```
+
+Steps: CI passes → Release Please succeeds → GitHub release tag matches npm version.
+Uses `Bun.spawnSync(["gh", ...args])` for the `gh` CLI (not template literals, which split args incorrectly).
