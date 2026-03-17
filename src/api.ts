@@ -10,6 +10,7 @@ const DEFAULT_TIMEOUT_MS = 30000;
 
 export interface FetchModelsOptions {
   apiUrl?: string;
+  log?: (msg: string) => void;
 }
 
 const ErrorMessages = {
@@ -30,8 +31,11 @@ function getApiEndpoint(options?: FetchModelsOptions): string {
 
 export async function fetchModels(options: FetchModelsOptions = {}): Promise<FetchResult> {
   const endpoint = getApiEndpoint(options);
+  const log = options.log;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+  log?.(`Fetching models from ${endpoint}`);
 
   try {
     const response = await fetch(endpoint, {
@@ -52,24 +56,25 @@ export async function fetchModels(options: FetchModelsOptions = {}): Promise<Fet
       } catch {
         // Ignore errors reading body
       }
-      console.error(
-        `${ErrorMessages.NETWORK_ERROR}: HTTP ${response.status} ${response.statusText}`
-      );
+      const msg = `${ErrorMessages.NETWORK_ERROR}: HTTP ${response.status} ${response.statusText}`;
+      log?.(msg);
       return {
         error: {
           type: 'http',
-          message: `${ErrorMessages.NETWORK_ERROR}: HTTP ${response.status} ${response.statusText}`,
+          message: msg,
           status: response.status,
           details,
         },
       };
     }
 
+    log?.(`Received HTTP ${response.status} response, parsing JSON`);
+
     let data: unknown;
     try {
       data = await response.json();
     } catch (parseError) {
-      console.error(ErrorMessages.PARSE_ERROR, parseError);
+      log?.(`${ErrorMessages.PARSE_ERROR}: ${parseError}`);
       return {
         error: {
           type: 'parse',
@@ -80,7 +85,7 @@ export async function fetchModels(options: FetchModelsOptions = {}): Promise<Fet
     }
 
     if (!isValidOpenRouterResponse(data)) {
-      console.error(ErrorMessages.INVALID_RESPONSE);
+      log?.(ErrorMessages.INVALID_RESPONSE);
       return {
         error: {
           type: 'validation',
@@ -91,7 +96,7 @@ export async function fetchModels(options: FetchModelsOptions = {}): Promise<Fet
     }
 
     if (data.data.length === 0) {
-      console.error(ErrorMessages.EMPTY_DATA);
+      log?.(ErrorMessages.EMPTY_DATA);
       return {
         error: {
           type: 'empty',
@@ -100,13 +105,14 @@ export async function fetchModels(options: FetchModelsOptions = {}): Promise<Fet
       };
     }
 
+    log?.(`Successfully fetched ${data.data.length} models`);
     return { data: data.data };
   } catch (error) {
     clearTimeout(timeoutId);
 
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        console.error(ErrorMessages.TIMEOUT);
+        log?.(ErrorMessages.TIMEOUT);
         return {
           error: {
             type: 'timeout',
@@ -114,17 +120,18 @@ export async function fetchModels(options: FetchModelsOptions = {}): Promise<Fet
           },
         };
       } else {
-        console.error(`${ErrorMessages.NETWORK_ERROR}: ${error.message}`);
+        const msg = `${ErrorMessages.NETWORK_ERROR}: ${error.message}`;
+        log?.(msg);
         return {
           error: {
             type: 'network',
-            message: `${ErrorMessages.NETWORK_ERROR}: ${error.message}`,
+            message: msg,
             details: error,
           },
         };
       }
     } else {
-      console.error(ErrorMessages.UNKNOWN, error);
+      log?.(`${ErrorMessages.UNKNOWN}: ${error}`);
       return {
         error: {
           type: 'network',

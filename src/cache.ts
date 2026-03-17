@@ -44,8 +44,9 @@ export function getCachePath(config?: Partial<SyncConfig>): string {
  * Ensure the cache directory exists
  * @param config - Optional sync configuration override
  */
-async function ensureCacheDir(config?: Partial<SyncConfig>): Promise<void> {
+async function ensureCacheDir(config?: Partial<SyncConfig>, log?: (msg: string) => void): Promise<void> {
   const cfg = { ...defaultConfig, ...config };
+  log?.(`Ensuring cache directory exists: ${cfg.cacheDir}`);
   await fs.mkdir(cfg.cacheDir, { recursive: true });
 }
 
@@ -53,30 +54,43 @@ async function ensureCacheDir(config?: Partial<SyncConfig>): Promise<void> {
  * Check if the cache is valid (exists and not expired)
  * @param cacheData - The cached data to validate
  * @param ttlMs - Time-to-live in milliseconds (default: 24 hours)
+ * @param log - Optional logging function
  * @returns true if cache is valid, false otherwise
  */
-export function isCacheValid(cacheData: CacheData | null, ttlMs = DEFAULT_CACHE_TTL_MS): boolean {
+export function isCacheValid(cacheData: CacheData | null, ttlMs = DEFAULT_CACHE_TTL_MS, log?: (msg: string) => void): boolean {
   if (!cacheData) {
+    log?.('Cache data is null, cache invalid');
     return false;
   }
 
   if (!cacheData.timestamp || typeof cacheData.timestamp !== 'number') {
+    log?.('Cache has invalid or missing timestamp');
     return false;
   }
 
   const now = Date.now();
   const age = now - cacheData.timestamp;
+  const valid = age >= 0 && age < ttlMs;
 
-  return age >= 0 && age < ttlMs;
+  if (valid) {
+    const remainingMs = ttlMs - age;
+    log?.(`Cache is valid (age: ${Math.round(age / 1000)}s, expires in: ${Math.round(remainingMs / 1000)}s, models: ${cacheData.models?.length ?? 0})`);
+  } else {
+    log?.(`Cache is expired (age: ${Math.round(age / 1000)}s, ttl: ${Math.round(ttlMs / 1000)}s)`);
+  }
+
+  return valid;
 }
 
 /**
  * Read the cache from disk
  * @param config - Optional sync configuration override
+ * @param log - Optional logging function
  * @returns The cached data or null if cache doesn't exist or is invalid
  */
-export async function readCache(config?: Partial<SyncConfig>): Promise<CacheData | null> {
+export async function readCache(config?: Partial<SyncConfig>, log?: (msg: string) => void): Promise<CacheData | null> {
   const cachePath = getCachePath(config);
+  log?.(`Reading cache from ${cachePath}`);
 
   try {
     const data = await fs.readFile(cachePath, 'utf-8');
@@ -84,16 +98,23 @@ export async function readCache(config?: Partial<SyncConfig>): Promise<CacheData
 
     // Validate cache structure
     if (!cacheData.models || !Array.isArray(cacheData.models)) {
+      log?.('Cache file has invalid structure: missing or non-array models field');
       return null;
     }
 
     if (typeof cacheData.timestamp !== 'number') {
+      log?.('Cache file has invalid structure: missing or non-number timestamp');
       return null;
     }
 
+    log?.(`Cache loaded: ${cacheData.models.length} models, timestamp ${new Date(cacheData.timestamp).toISOString()}`);
     return cacheData;
   } catch (error) {
-    // File doesn't exist or is corrupt - return null
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      log?.(`Cache file not found at ${cachePath}`);
+    } else {
+      log?.(`Error reading cache file: ${error instanceof Error ? error.message : String(error)}`);
+    }
     return null;
   }
 }
@@ -102,12 +123,14 @@ export async function readCache(config?: Partial<SyncConfig>): Promise<CacheData
  * Write data to the cache file
  * @param cacheData - The data to cache
  * @param config - Optional sync configuration override
+ * @param log - Optional logging function
  */
-export async function writeCache(cacheData: CacheData, config?: Partial<SyncConfig>): Promise<void> {
+export async function writeCache(cacheData: CacheData, config?: Partial<SyncConfig>, log?: (msg: string) => void): Promise<void> {
   const cachePath = getCachePath(config);
+  log?.(`Writing cache to ${cachePath} (${cacheData.models.length} models)`);
 
   // Ensure the directory exists
-  await ensureCacheDir(config);
+  await ensureCacheDir(config, log);
 
   // Write atomically: first to temp file, then rename
   const tempPath = `${cachePath}.tmp`;
@@ -115,21 +138,29 @@ export async function writeCache(cacheData: CacheData, config?: Partial<SyncConf
 
   await fs.writeFile(tempPath, data, 'utf-8');
   await fs.rename(tempPath, cachePath);
+  log?.(`Cache written successfully (${data.length} bytes)`);
 }
 
 /**
  * Clear the cache by deleting the cache file
  * @param config - Optional sync configuration override
+ * @param log - Optional logging function
  * @returns true if cache was cleared, false if no cache existed
  */
-export async function clearCache(config?: Partial<SyncConfig>): Promise<boolean> {
+export async function clearCache(config?: Partial<SyncConfig>, log?: (msg: string) => void): Promise<boolean> {
   const cachePath = getCachePath(config);
+  log?.(`Clearing cache at ${cachePath}`);
 
   try {
     await fs.unlink(cachePath);
+    log?.('Cache cleared successfully');
     return true;
   } catch (error) {
-    // File doesn't exist
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      log?.('No cache file to clear');
+    } else {
+      log?.(`Error clearing cache: ${error instanceof Error ? error.message : String(error)}`);
+    }
     return false;
   }
 }
