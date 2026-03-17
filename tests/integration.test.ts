@@ -929,3 +929,303 @@ describe('performSync file write integration', () => {
     expect(Object.keys(models)).toHaveLength(3);
   });
 });
+
+/**
+ * Live API integration tests - hit the real OpenRouter API and write to a real config file.
+ * These tests verify the full pipeline works end-to-end with real data.
+ */
+describe('Live API integration', () => {
+  const LIVE_API_TIMEOUT = 60000;
+
+  it('should find minimax/minimax-m2.5:free in the OpenRouter API response', async () => {
+    const result = await fetchModels();
+
+    expect('data' in result).toBe(true);
+    if (!('data' in result)) return;
+
+    const models = result.data;
+    expect(models.length).toBeGreaterThan(0);
+
+    const minimax = models.find(m => m.id === 'minimax/minimax-m2.5:free');
+    expect(minimax).toBeDefined();
+    expect(minimax!.name).toBeTruthy();
+    expect(minimax!.context_length).toBeGreaterThan(0);
+  }, LIVE_API_TIMEOUT);
+
+  it('should fetch models from API and write them to config via updateModels', async () => {
+    // Fetch real models from OpenRouter API
+    const result = await fetchModels();
+    expect('data' in result).toBe(true);
+    if (!('data' in result)) return;
+
+    const models = result.data;
+    expect(models.length).toBeGreaterThan(100); // OpenRouter has hundreds of models
+
+    // Write to a temp config file using the real updateModels function
+    const tempConfigDir = join(tmpdir(), `openrouter-live-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const tempConfigPath = join(tempConfigDir, 'opencode.json');
+
+    try {
+      await mkdir(tempConfigDir, { recursive: true });
+      await writeFile(tempConfigPath, JSON.stringify({
+        provider: { openrouter: { models: {} } }
+      }, null, 2), 'utf-8');
+
+      const updateResult = await updateModels(models, tempConfigPath);
+
+      expect(updateResult.added).toBeGreaterThan(100);
+      expect(updateResult.skipped).toBe(0);
+
+      // Read config back and verify minimax model is there
+      const configContent = await readFile(tempConfigPath, 'utf-8');
+      const config = JSON.parse(configContent);
+      const configModels = config.provider.openrouter.models;
+
+      expect(configModels['minimax/minimax-m2.5:free']).toBeDefined();
+      expect(configModels['minimax/minimax-m2.5:free'].name).toBeTruthy();
+
+      // Verify model entry shape (no raw API fields)
+      const entry = configModels['minimax/minimax-m2.5:free'];
+      expect(entry.id).toBeUndefined();
+      expect(entry.pricing).toBeUndefined();
+      expect(entry.architecture).toBeUndefined();
+    } finally {
+      await rm(tempConfigDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }, LIVE_API_TIMEOUT);
+});
+
+/**
+ * performSync with real deps against the real user profile.
+ * Hits the live OpenRouter API, writes to the actual config, and validates
+ * every model entry against the OpenCode schema from src/schema.ts.
+ */
+describe('performSync against real profile', () => {
+  const TIMEOUT = 60000;
+  let realConfigPath: string;
+  let originalContent: string;
+
+  // Extract the model entry validator from the schema once
+  const providerRecord = schema.shape.provider.unwrap();
+  const providerObj = providerRecord._def.valueType;
+  const modelsRecord = providerObj.shape.models.unwrap();
+  const openCodeModelSchema = modelsRecord._def.valueType;
+
+  beforeEach(async () => {
+    const { resolveGlobalConfigPath } = await import('../src/config.js');
+    realConfigPath = await resolveGlobalConfigPath();
+
+    // Back up the real config
+    originalContent = await readFile(realConfigPath, 'utf-8');
+  });
+
+  afterEach(async () => {
+    // Restore the real config
+    await writeFile(realConfigPath, originalContent, 'utf-8');
+  });
+
+  it('should sync models to real config and produce schema-valid entries', async () => {
+    // Fetch real models from OpenRouter API
+    const result = await fetchModels();
+    expect('data' in result).toBe(true);
+    if (!('data' in result)) return;
+
+    const models = result.data;
+    expect(models.length).toBeGreaterThan(100);
+
+    // Write to the real config
+    const updateResult = await updateModels(models, realConfigPath);
+    console.log('updateModels result:', updateResult);
+    expect(updateResult.added).toBeGreaterThan(0);
+
+    // Read back and validate
+    const configContent = await readFile(realConfigPath, 'utf-8');
+    const config = JSON.parse(configContent);
+    const configModels = config.provider?.openrouter?.models ?? {};
+    const modelIds = Object.keys(configModels);
+
+    expect(modelIds.length).toBeGreaterThan(100);
+    expect(modelIds).toContain('minimax/minimax-m2.5:free');
+
+    // Validate every model entry against the OpenCode schema
+    const failures: string[] = [];
+    for (const [modelId, modelEntry] of Object.entries(configModels)) {
+      const parseResult = openCodeModelSchema.safeParse(modelEntry);
+      if (!parseResult.success) {
+        failures.push(`${modelId}: ${parseResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')}`);
+      }
+    }
+
+    if (failures.length > 0) {
+      console.error(`Schema validation failures (${failures.length}/${modelIds.length}):`);
+      // Log first 10 for diagnostics
+      for (const f of failures.slice(0, 10)) {
+        console.error(' ', f);
+      }
+    }
+
+    expect(failures).toHaveLength(0);
+  }, TIMEOUT);
+});
+
+/**
+ * Real config integration tests.
+ * Fetches from the live OpenRouter API, writes to a temp config using updateModels,
+ * then verifies the specific model exists in the config file on disk.
+ */
+describe('Config file model verification', () => {
+  const TIMEOUT = 60000;
+
+  it('should have minimax/minimax-m2.5:free in config after updateModels writes real API data', async () => {
+    // Fetch real models from OpenRouter API
+    const result = await fetchModels();
+    expect('data' in result).toBe(true);
+    if (!('data' in result)) return;
+
+    const models = result.data;
+
+    // Write to a temp config
+    const tempConfigDir = join(tmpdir(), `openrouter-configcheck-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const tempConfigPath = join(tempConfigDir, 'opencode.json');
+
+    try {
+      await mkdir(tempConfigDir, { recursive: true });
+      await writeFile(tempConfigPath, JSON.stringify({
+        provider: { openrouter: { models: {} } }
+      }, null, 2), 'utf-8');
+
+      await updateModels(models, tempConfigPath);
+
+      // Read config back and check for the model
+      const configContent = await readFile(tempConfigPath, 'utf-8');
+      const config = JSON.parse(configContent);
+      const configModels = config.provider.openrouter.models;
+      const modelIds = Object.keys(configModels);
+
+      // Verify the specific model is in the config
+      expect(modelIds).toContain('minimax/minimax-m2.5:free');
+
+      // Verify it has a valid entry
+      const entry = configModels['minimax/minimax-m2.5:free'];
+      expect(entry).toBeDefined();
+      expect(entry.name).toBeTruthy();
+      expect(entry.limit).toBeDefined();
+      expect(entry.limit.context).toBeGreaterThan(0);
+    } finally {
+      await rm(tempConfigDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }, TIMEOUT);
+});
+
+/**
+ * CLI integration test - run `opencode models` and check the output.
+ * Self-contained: fetches models from the live API, writes them to the real
+ * config, runs the CLI, then restores the original config.
+ */
+describe('opencode CLI model list', () => {
+  const CLI_TIMEOUT = 60000;
+
+  let realConfigPath: string;
+  let originalContent: string;
+
+  // Extract the model entry validator from the schema once
+  const providerRecord = schema.shape.provider.unwrap();
+  const providerObj = providerRecord._def.valueType;
+  const modelsRecord = providerObj.shape.models.unwrap();
+  const openCodeModelSchema = modelsRecord._def.valueType;
+
+  beforeEach(async () => {
+    const { resolveGlobalConfigPath } = await import('../src/config.js');
+    realConfigPath = await resolveGlobalConfigPath();
+
+    // Back up the real config
+    originalContent = await readFile(realConfigPath, 'utf-8');
+
+    // Fetch models from the live API and write them to the real config
+    const result = await fetchModels();
+    expect('data' in result).toBe(true);
+    if (!('data' in result)) return;
+
+    const models = result.data;
+    expect(models.length).toBeGreaterThan(100);
+
+    const updateResult = await updateModels(models, realConfigPath);
+    expect(updateResult.added).toBeGreaterThan(0);
+
+    // Validate all written entries against the OpenCode schema
+    const configContent = await readFile(realConfigPath, 'utf-8');
+    const config = JSON.parse(configContent);
+    const configModels = config.provider?.openrouter?.models ?? {};
+
+    const failures: string[] = [];
+    for (const [modelId, modelEntry] of Object.entries(configModels)) {
+      const parseResult = openCodeModelSchema.safeParse(modelEntry);
+      if (!parseResult.success) {
+        failures.push(`${modelId}: ${parseResult.error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', ')}`);
+      }
+    }
+
+    if (failures.length > 0) {
+      console.error(`Schema validation failures (${failures.length}/${Object.keys(configModels).length}):`);
+      for (const f of failures.slice(0, 10)) {
+        console.error(' ', f);
+      }
+    }
+    expect(failures).toHaveLength(0);
+  });
+
+  afterEach(async () => {
+    // Restore the real config
+    await writeFile(realConfigPath, originalContent, 'utf-8');
+  });
+
+  function runOpenCode(args: string[]): Promise<string> {
+    const { spawn } = require('child_process');
+    return new Promise<string>((resolve, reject) => {
+      const proc = spawn('opencode', args, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        shell: process.platform === 'win32',
+        timeout: CLI_TIMEOUT,
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      proc.stdout?.on('data', (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      proc.stderr?.on('data', (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      proc.on('error', (err: Error) => reject(err));
+      proc.on('close', (code: number | null) => {
+        if (code !== 0) {
+          reject(new Error(`opencode ${args.join(' ')} exited with code ${code}\nstderr: ${stderr}\nstdout: ${stdout}`));
+        } else {
+          resolve(stdout);
+        }
+      });
+    });
+  }
+
+  it('should list openrouter/minimax/minimax-m2.5:free in opencode models output', async () => {
+    const output = await runOpenCode(['models']);
+
+    const lines = output.split('\n').map(l => l.trim()).filter(Boolean);
+    const openrouterModels = lines.filter(l => l.startsWith('openrouter/'));
+
+    // Verify that openrouter models exist at all
+    expect(openrouterModels.length).toBeGreaterThan(0);
+
+    // Check for the specific :free model
+    const hasFreeModel = lines.some(l => l.includes('minimax/minimax-m2.5:free'));
+    if (!hasFreeModel) {
+      // Log diagnostic info: show all minimax-related models
+      const minimaxModels = lines.filter(l => l.toLowerCase().includes('minimax'));
+      console.log('Minimax models found in opencode models:', minimaxModels);
+    }
+    expect(hasFreeModel).toBe(true);
+  }, CLI_TIMEOUT);
+});

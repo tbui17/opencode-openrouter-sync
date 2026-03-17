@@ -81,5 +81,10 @@ export function stripJsonComments(text: string): string {
     }
   }
 
-  return result.join('');
+  let output = result.join('');
+
+  // Strip trailing commas: comma followed by optional whitespace/newlines then ] or }
+  output = output.replace(/,(\s*[\]}])/g, '$1');
+
+  return output;
 }
