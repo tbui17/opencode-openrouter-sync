@@ -1,0 +1,326 @@
+{
+	"data": [
+		{
+			"id": "mock/test-gpt-4",
+			"canonical_slug": "test-gpt-4",
+			"hugging_face_id": "",
+			"name": "Test GPT-4",
+			"created": 1709596800,
+			"description": "A powerful text generation model for testing purposes",
+			"context_length": 8192,
+			"architecture": {
+				"modality": "text->text",
+				"input_modalities": ["text"],
+				"output_modalities": ["text"],
+				"tokenizer": "cl100k_base",
+				"instruct_type": "chat"
+			},
+			"pricing": {
+				"prompt": "0.002",
+				"completion": "0.008",
+				"input_cache_read": "0.00001"
+			},
+			"top_provider": {
+				"context_length": 8192,
+				"max_completion_tokens": 4096,
+				"is_moderated": true
+			},
+			"per_request_limits": null,
+			"supported_parameters": [
+				"temperature",
+				"max_tokens",
+				"top_p",
+				"frequency_penalty",
+				"presence_penalty"
+			],
+			"default_parameters": {
+				"temperature": 0.7,
+				"top_p": 1,
+				"top_k": null,
+				"frequency_penalty": 0,
+				"presence_penalty": 0,
+				"repetition_penalty": null
+			},
+			"expiration_date": null
+		},
+		{
+			"id": "mock/test-vision-model",
+			"canonical_slug": "test-vision-model",
+			"hugging_face_id": "",
+			"name": "Test Vision Model",
+			"created": 1711958400,
+			"description": "A multimodal model capable of understanding images and text",
+			"context_length": 32768,
+			"architecture": {
+				"modality": "text+image->text",
+				"input_modalities": ["text", "image"],
+				"output_modalities": ["text"],
+				"tokenizer": "cl100k_base",
+				"instruct_type": "chat"
+			},
+			"pricing": {
+				"prompt": "0.005",
+				"completion": "0.015",
+				"input_cache_read": "0.000025"
+			},
+			"top_provider": {
+				"context_length": 32768,
+				"max_completion_tokens": 8192,
+				"is_moderated": true
+			},
+			"per_request_limits": null,
+			"supported_parameters": ["temperature", "max_tokens", "top_p"],
+			"default_parameters": {
+				"temperature": 0.7,
+				"top_p": 1,
+				"top_k": null,
+				"frequency_penalty": 0,
+				"presence_penalty": 0,
+				"repetition_penalty": null
+			},
+			"expiration_date": null
+		},
+		{
+			"id": "mock/test-long-context",
+			"canonical_slug": "test-long-context",
+			"hugging_face_id": "",
+			"name": "Test Long Context",
+			"created": 1717200000,
+			"description": "A model designed for extremely long context windows",
+			"context_length": 200000,
+			"architecture": {
+				"modality": "text->text",
+				"input_modalities": ["text"],
+				"output_modalities": ["text"],
+				"tokenizer": "o200k_base",
+				"instruct_type": "chat"
+			},
+			"pricing": {
+				"prompt": "0.01",
+				"completion": "0.03",
+				"input_cache_read": "0.00005"
+			},
+			"top_provider": {
+				"context_length": 200000,
+				"max_completion_tokens": 16384,
+				"is_moderated": false
+			},
+			"per_request_limits": null,
+			"supported_parameters": [
+				"temperature",
+				"max_tokens",
+				"top_p",
+				"frequency_penalty",
+				"presence_penalty"
+			],
+			"default_parameters": {
+				"temperature": 0.7,
+				"top_p": 1,
+				"top_k": null,
+				"frequency_penalty": 0,
+				"presence_penalty": 0,
+				"repetition_penalty": null
+			},
+			"expiration_date": null
+		},
+		{
+			"id": "mock/test-budget",
+			"canonical_slug": "test-budget",
+			"hugging_face_id": "",
+			"name": "Test Budget Model",
+			"created": 1714521600,
+			"description": "An affordable model for simple tasks",
+			"context_length": 4096,
+			"architecture": {
+				"modality": "text->text",
+				"input_modalities": ["text"],
+				"output_modalities": ["text"],
+				"tokenizer": "r50k_base",
+				"instruct_type": "chat"
+			},
+			"pricing": {
+				"prompt": "0.0001",
+				"completion": "0.0002",
+				"input_cache_read": "0.000005"
+			},
+			"top_provider": {
+				"context_length": 4096,
+				"max_completion_tokens": 1024,
+				"is_moderated": false
+			},
+			"per_request_limits": null,
+			"supported_parameters": ["temperature", "max_tokens"],
+			"default_parameters": {
+				"temperature": 0.7,
+				"top_p": 1,
+				"top_k": null,
+				"frequency_penalty": 0,
+				"presence_penalty": 0,
+				"repetition_penalty": null
+			},
+			"expiration_date": null
+		},
+		{
+			"id": "mock/test-code-specialist",
+			"canonical_slug": "test-code-specialist",
+			"hugging_face_id": "",
+			"name": "Test Code Specialist",
+			"created": 1722470400,
+			"description": "A model optimized for code generation and debugging",
+			"context_length": 65536,
+			"architecture": {
+				"modality": "text->text",
+				"input_modalities": ["text"],
+				"output_modalities": ["text"],
+				"tokenizer": "cl100k_base",
+				"instruct_type": "infill"
+			},
+			"pricing": {
+				"prompt": "0.003",
+				"completion": "0.012",
+				"input_cache_read": "0.000015"
+			},
+			"top_provider": {
+				"context_length": 65536,
+				"max_completion_tokens": 8192,
+				"is_moderated": false
+			},
+			"per_request_limits": null,
+			"supported_parameters": [
+				"temperature",
+				"max_tokens",
+				"top_p",
+				"frequency_penalty",
+				"presence_penalty",
+				"top_k"
+			],
+			"default_parameters": {
+				"temperature": 0.5,
+				"top_p": 1,
+				"top_k": 40,
+				"frequency_penalty": 0,
+				"presence_penalty": 0,
+				"repetition_penalty": null
+			},
+			"expiration_date": null
+		},
+		{
+			"id": "mock/test-reasoning",
+			"canonical_slug": "test-reasoning",
+			"hugging_face_id": "",
+			"name": "Test Reasoning Model",
+			"created": 1725148800,
+			"description": "A model focused on complex reasoning and problem-solving",
+			"context_length": 128000,
+			"architecture": {
+				"modality": "text->text",
+				"input_modalities": ["text"],
+				"output_modalities": ["text"],
+				"tokenizer": "o200k_base",
+				"instruct_type": "chat"
+			},
+			"pricing": {
+				"prompt": "0.015",
+				"completion": "0.075",
+				"input_cache_read": "0.000075"
+			},
+			"top_provider": {
+				"context_length": 128000,
+				"max_completion_tokens": 32768,
+				"is_moderated": true
+			},
+			"per_request_limits": null,
+			"supported_parameters": [
+				"temperature",
+				"max_tokens",
+				"top_p",
+				"frequency_penalty",
+				"presence_penalty",
+				"reasoning_effort"
+			],
+			"default_parameters": {
+				"temperature": 0.7,
+				"top_p": 0.95,
+				"top_k": null,
+				"frequency_penalty": 0,
+				"presence_penalty": 0,
+				"repetition_penalty": null
+			},
+			"expiration_date": null
+		},
+		{
+			"id": "mock/test-embedding",
+			"canonical_slug": "test-embedding",
+			"hugging_face_id": "",
+			"name": "Test Embeddings Model",
+			"created": 1704067200,
+			"description": "A model for generating text embeddings",
+			"context_length": 8192,
+			"architecture": {
+				"modality": "text->embedding",
+				"input_modalities": ["text"],
+				"output_modalities": ["embedding"],
+				"tokenizer": "cl100k_base",
+				"instruct_type": null
+			},
+			"pricing": {
+				"prompt": "0.0001",
+				"completion": "0",
+				"input_cache_read": "0.000005"
+			},
+			"top_provider": {
+				"context_length": 8192,
+				"max_completion_tokens": 0,
+				"is_moderated": false
+			},
+			"per_request_limits": null,
+			"supported_parameters": [],
+			"default_parameters": {
+				"temperature": null,
+				"top_p": null,
+				"top_k": null,
+				"frequency_penalty": null,
+				"presence_penalty": null,
+				"repetition_penalty": null
+			},
+			"expiration_date": null
+		},
+		{
+			"id": "mock/test-streaming",
+			"canonical_slug": "test-streaming",
+			"hugging_face_id": "",
+			"name": "Test Streaming Model",
+			"created": 1717200000,
+			"description": "A model optimized for real-time streaming responses",
+			"context_length": 16384,
+			"architecture": {
+				"modality": "text->text",
+				"input_modalities": ["text"],
+				"output_modalities": ["text"],
+				"tokenizer": "cl100k_base",
+				"instruct_type": "chat"
+			},
+			"pricing": {
+				"prompt": "0.0015",
+				"completion": "0.005",
+				"input_cache_read": "0.0000075"
+			},
+			"top_provider": {
+				"context_length": 16384,
+				"max_completion_tokens": 4096,
+				"is_moderated": true
+			},
+			"per_request_limits": null,
+			"supported_parameters": ["temperature", "max_tokens", "top_p", "stream"],
+			"default_parameters": {
+				"temperature": 0.8,
+				"top_p": 1,
+				"top_k": null,
+				"frequency_penalty": 0,
+				"presence_penalty": 0,
+				"repetition_penalty": null
+			},
+			"expiration_date": 1748563200
+		}
+	]
+}
