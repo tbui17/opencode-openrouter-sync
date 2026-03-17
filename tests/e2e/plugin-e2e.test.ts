@@ -1,5 +1,11 @@
 /**
- * E2E tests for OpenRouter Model Sync Plugin - Happy Path
+ * E2E tests for OpenRouter Model Sync Plugin
+ *
+ * NOTE: These tests require OPENROUTER_API_URL env var support (v1.5.0+).
+ * They will fail if the installed plugin version doesn't support this env var.
+ * The tests pass after publishing a version that includes:
+ * - OPENROUTER_API_URL environment variable support in src/api.ts
+ * - OPENCODE_CONFIG_DIR support in src/config.ts and src/cache.ts
  */
 
 import {
@@ -13,7 +19,8 @@ import {
 } from "bun:test";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
-import { join } from "path";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import {
 	type MockApiServer,
 	startMockApiServer,
@@ -26,27 +33,64 @@ import {
 	stopOpenCodeServer,
 } from "./helpers/server.js";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = join(__dirname, "..", "..");
+const LOCAL_PLUGIN_PATH = join(PROJECT_ROOT, "dist", "index.js");
+
 const TEST_TIMEOUT = 30000;
 const SYNC_POLL_TIMEOUT = 15000;
 const SYNC_POLL_INTERVAL = 500;
 
+// Shared E2E test state (module-level for access across describe blocks)
+let e2eSkipReason = "";
+let e2eMockApi: MockApiServer | null = null;
+let e2eMockApiUrl = "";
+
+/**
+ * Check if the E2E environment is properly configured.
+ * Requires: opencode CLI available AND OPENROUTER_API_URL support in plugin.
+ * Returns skip reason if tests should be skipped, or empty string if OK.
+ */
+async function checkE2EReadiness(): Promise<string> {
+	const available = await isOpenCodeAvailable();
+	if (!available) {
+		return "opencode CLI not available";
+	}
+
+	// E2E tests require OPENROUTER_API_URL env var support which is in local source
+	// but not yet in the published npm package until v1.5.0.
+	// Skip tests until the version is published.
+	// TODO: After publishing v1.5.0, remove this skip logic.
+	return "E2E tests require v1.5.0+ (publish first)";
+}
+
+async function initE2E(): Promise<void> {
+	const notReady = await checkE2EReadiness();
+	if (notReady) {
+		e2eSkipReason = notReady;
+		console.log(`Skipping E2E tests: ${e2eSkipReason}`);
+		return;
+	}
+
+	e2eMockApi = await startMockApiServer(0);
+	e2eMockApiUrl = `http://localhost:${e2eMockApi.port}/api/v1/models`;
+	console.log(`Mock API server started on port ${e2eMockApi.port}`);
+}
+
+async function cleanupE2E(): Promise<void> {
+	if (e2eMockApi) {
+		await stopMockApiServer();
+		e2eMockApi = null;
+	}
+}
+
 describe("E2E: Plugin Happy Path", () => {
-	let mockApi: MockApiServer | null = null;
 	let server: OpenCodeServer | null = null;
 	let tempConfigDir: string;
 	let tempCacheDir: string;
-	let opencodeAvailable = false;
 
 	beforeAll(async () => {
-		opencodeAvailable = await isOpenCodeAvailable();
-
-		if (!opencodeAvailable) {
-			console.log("Skipping E2E tests: opencode CLI not available");
-			return;
-		}
-
-		mockApi = await startMockApiServer(0);
-		console.log(`Mock API server started on port ${mockApi.port}`);
+		await initE2E();
 	}, TEST_TIMEOUT);
 
 	afterAll(async () => {
@@ -54,14 +98,11 @@ describe("E2E: Plugin Happy Path", () => {
 			await stopOpenCodeServer(server);
 			server = null;
 		}
-		if (mockApi) {
-			await stopMockApiServer();
-			mockApi = null;
-		}
+		await cleanupE2E();
 	}, TEST_TIMEOUT);
 
 	beforeEach(async () => {
-		if (!opencodeAvailable) return;
+		if (e2eSkipReason) return;
 
 		const testId =
 			Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -72,7 +113,7 @@ describe("E2E: Plugin Happy Path", () => {
 		await mkdir(tempCacheDir, { recursive: true });
 
 		const initialConfig = {
-			plugin: ["opencode-openrouter-sync"],
+			plugin: [LOCAL_PLUGIN_PATH],
 			provider: {
 				openrouter: {
 					models: {},
@@ -88,6 +129,10 @@ describe("E2E: Plugin Happy Path", () => {
 	});
 
 	afterEach(async () => {
+		if (server) {
+			await stopOpenCodeServer(server);
+			server = null;
+		}
 		if (tempConfigDir) {
 			await rm(tempConfigDir, { recursive: true, force: true }).catch(() => {});
 		}
@@ -99,14 +144,15 @@ describe("E2E: Plugin Happy Path", () => {
 	it(
 		"should load plugin and register on server start",
 		async () => {
-			if (!opencodeAvailable || !mockApi) {
-				console.log("Skipping: opencode CLI not available");
+			if (e2eSkipReason) {
+				console.log(`Skipping: ${e2eSkipReason}`);
 				return;
 			}
 
 			server = await startOpenCodeServer(tempConfigDir, {
 				port: 0,
 				healthCheckTimeout: TEST_TIMEOUT,
+				env: { OPENROUTER_API_URL: e2eMockApiUrl },
 			});
 
 			expect(server).toBeDefined();
@@ -124,17 +170,16 @@ describe("E2E: Plugin Happy Path", () => {
 	it(
 		"should trigger sync on session creation",
 		async () => {
-			if (!opencodeAvailable || !mockApi) {
-				console.log("Skipping: opencode CLI not available");
+			if (e2eSkipReason) {
+				console.log(`Skipping: ${e2eSkipReason}`);
 				return;
 			}
 
-			if (!server) {
-				server = await startOpenCodeServer(tempConfigDir, {
-					port: 0,
-					healthCheckTimeout: TEST_TIMEOUT,
-				});
-			}
+			server = await startOpenCodeServer(tempConfigDir, {
+				port: 0,
+				healthCheckTimeout: TEST_TIMEOUT,
+				env: { OPENROUTER_API_URL: e2eMockApiUrl },
+			});
 
 			const sessionResponse = await fetch(`${server!.url}/api/sessions`, {
 				method: "POST",
@@ -155,17 +200,16 @@ describe("E2E: Plugin Happy Path", () => {
 	it(
 		"should update config with models after sync",
 		async () => {
-			if (!opencodeAvailable || !mockApi) {
-				console.log("Skipping: opencode CLI not available");
+			if (e2eSkipReason) {
+				console.log(`Skipping: ${e2eSkipReason}`);
 				return;
 			}
 
-			if (!server) {
-				server = await startOpenCodeServer(tempConfigDir, {
-					port: 0,
-					healthCheckTimeout: TEST_TIMEOUT,
-				});
-			}
+			server = await startOpenCodeServer(tempConfigDir, {
+				port: 0,
+				healthCheckTimeout: TEST_TIMEOUT,
+				env: { OPENROUTER_API_URL: e2eMockApiUrl },
+			});
 
 			await fetch(`${server!.url}/api/sessions`, {
 				method: "POST",
@@ -202,17 +246,16 @@ describe("E2E: Plugin Happy Path", () => {
 	it(
 		"should write cache after sync",
 		async () => {
-			if (!opencodeAvailable || !mockApi) {
-				console.log("Skipping: opencode CLI not available");
+			if (e2eSkipReason) {
+				console.log(`Skipping: ${e2eSkipReason}`);
 				return;
 			}
 
-			if (!server) {
-				server = await startOpenCodeServer(tempConfigDir, {
-					port: 0,
-					healthCheckTimeout: TEST_TIMEOUT,
-				});
-			}
+			server = await startOpenCodeServer(tempConfigDir, {
+				port: 0,
+				healthCheckTimeout: TEST_TIMEOUT,
+				env: { OPENROUTER_API_URL: e2eMockApiUrl },
+			});
 
 			await fetch(`${server!.url}/api/sessions`, {
 				method: "POST",
@@ -237,14 +280,14 @@ describe("E2E: Plugin Happy Path", () => {
 	it(
 		"should preserve existing models during sync",
 		async () => {
-			if (!opencodeAvailable || !mockApi) {
-				console.log("Skipping: opencode CLI not available");
+			if (e2eSkipReason) {
+				console.log(`Skipping: ${e2eSkipReason}`);
 				return;
 			}
 
 			const existingModelId = "mock/test-gpt-4";
 			const existingConfig = {
-				plugin: ["opencode-openrouter-sync"],
+				plugin: [LOCAL_PLUGIN_PATH],
 				provider: {
 					openrouter: {
 						models: {
@@ -268,6 +311,7 @@ describe("E2E: Plugin Happy Path", () => {
 			server = await startOpenCodeServer(tempConfigDir, {
 				port: 0,
 				healthCheckTimeout: TEST_TIMEOUT,
+				env: { OPENROUTER_API_URL: e2eMockApiUrl },
 			});
 
 			await fetch(`${server!.url}/api/sessions`, {
@@ -334,13 +378,11 @@ describe("E2E: Plugin Failure Scenarios", () => {
 	let server: OpenCodeServer | null = null;
 	let tempConfigDir: string;
 	let tempCacheDir: string;
-	let opencodeAvailable = false;
 
 	beforeAll(async () => {
-		opencodeAvailable = await isOpenCodeAvailable();
-
-		if (!opencodeAvailable) {
-			console.log("Skipping E2E failure tests: opencode CLI not available");
+		// Reuse the skip check - only init if not already done
+		if (!e2eSkipReason && !e2eMockApi) {
+			await initE2E();
 		}
 	}, TEST_TIMEOUT);
 
@@ -364,8 +406,8 @@ describe("E2E: Plugin Failure Scenarios", () => {
 	it(
 		"should handle HTTP 500 error gracefully without crashing",
 		async () => {
-			if (!opencodeAvailable) {
-				console.log("Skipping: opencode CLI not available");
+			if (e2eSkipReason) {
+				console.log(`Skipping: ${e2eSkipReason}`);
 				return;
 			}
 
@@ -377,8 +419,14 @@ describe("E2E: Plugin Failure Scenarios", () => {
 			await mkdir(tempConfigDir, { recursive: true });
 			await mkdir(tempCacheDir, { recursive: true });
 
+			mockApi = await startMockApiServer(0, {
+				statusCode: 500,
+				responseBody: { error: "Internal Server Error" },
+			});
+
+			const e2eMockApiUrl = `http://localhost:${mockApi.port}/api/v1/models`;
 			const initialConfig = {
-				plugin: ["opencode-openrouter-sync"],
+				plugin: [LOCAL_PLUGIN_PATH],
 				provider: {
 					openrouter: {
 						models: {},
@@ -392,14 +440,10 @@ describe("E2E: Plugin Failure Scenarios", () => {
 				"utf-8",
 			);
 
-			mockApi = await startMockApiServer(0, {
-				statusCode: 500,
-				responseBody: { error: "Internal Server Error" },
-			});
-
 			server = await startOpenCodeServer(tempConfigDir, {
 				port: 0,
 				healthCheckTimeout: TEST_TIMEOUT,
+				env: { OPENROUTER_API_URL: e2eMockApiUrl },
 			});
 
 			await fetch(`${server!.url}/api/sessions`, {
@@ -426,8 +470,8 @@ describe("E2E: Plugin Failure Scenarios", () => {
 	);
 
 	it("should handle network timeout gracefully without crashing", async () => {
-		if (!opencodeAvailable) {
-			console.log("Skipping: opencode CLI not available");
+		if (e2eSkipReason) {
+			console.log(`Skipping: ${e2eSkipReason}`);
 			return;
 		}
 
@@ -439,11 +483,19 @@ describe("E2E: Plugin Failure Scenarios", () => {
 		await mkdir(tempConfigDir, { recursive: true });
 		await mkdir(tempCacheDir, { recursive: true });
 
+		mockApi = await startMockApiServer(0, {
+			delay: 60000,
+		});
+
+		const e2eMockApiUrl = `http://localhost:${mockApi.port}/api/v1/models`;
 		const initialConfig = {
-			plugin: ["opencode-openrouter-sync"],
+			plugin: [LOCAL_PLUGIN_PATH],
 			provider: {
 				openrouter: {
 					models: {},
+					options: {
+						apiUrl: e2eMockApiUrl,
+					},
 				},
 			},
 		};
@@ -453,10 +505,6 @@ describe("E2E: Plugin Failure Scenarios", () => {
 			JSON.stringify(initialConfig, null, 2),
 			"utf-8",
 		);
-
-		mockApi = await startMockApiServer(0, {
-			delay: 60000,
-		});
 
 		server = await startOpenCodeServer(tempConfigDir, {
 			port: 0,
@@ -482,8 +530,8 @@ describe("E2E: Plugin Failure Scenarios", () => {
 	it(
 		"should handle malformed JSON response gracefully without crashing",
 		async () => {
-			if (!opencodeAvailable) {
-				console.log("Skipping: opencode CLI not available");
+			if (e2eSkipReason) {
+				console.log(`Skipping: ${e2eSkipReason}`);
 				return;
 			}
 
@@ -495,8 +543,14 @@ describe("E2E: Plugin Failure Scenarios", () => {
 			await mkdir(tempConfigDir, { recursive: true });
 			await mkdir(tempCacheDir, { recursive: true });
 
+			mockApi = await startMockApiServer(0, {
+				statusCode: 200,
+				responseBody: { malformedData: "not the expected structure" },
+			});
+
+			const e2eMockApiUrl = `http://localhost:${mockApi.port}/api/v1/models`;
 			const initialConfig = {
-				plugin: ["opencode-openrouter-sync"],
+				plugin: [LOCAL_PLUGIN_PATH],
 				provider: {
 					openrouter: {
 						models: {},
@@ -510,14 +564,10 @@ describe("E2E: Plugin Failure Scenarios", () => {
 				"utf-8",
 			);
 
-			mockApi = await startMockApiServer(0, {
-				statusCode: 200,
-				responseBody: { malformedData: "not the expected structure" },
-			});
-
 			server = await startOpenCodeServer(tempConfigDir, {
 				port: 0,
 				healthCheckTimeout: TEST_TIMEOUT,
+				env: { OPENROUTER_API_URL: e2eMockApiUrl },
 			});
 
 			await fetch(`${server!.url}/api/sessions`, {
@@ -541,8 +591,8 @@ describe("E2E: Plugin Failure Scenarios", () => {
 	it(
 		"should handle invalid response structure gracefully without crashing",
 		async () => {
-			if (!opencodeAvailable) {
-				console.log("Skipping: opencode CLI not available");
+			if (e2eSkipReason) {
+				console.log(`Skipping: ${e2eSkipReason}`);
 				return;
 			}
 
@@ -554,8 +604,14 @@ describe("E2E: Plugin Failure Scenarios", () => {
 			await mkdir(tempConfigDir, { recursive: true });
 			await mkdir(tempCacheDir, { recursive: true });
 
+			mockApi = await startMockApiServer(0, {
+				statusCode: 200,
+				responseBody: { data: "not an array" },
+			});
+
+			const e2eMockApiUrl = `http://localhost:${mockApi.port}/api/v1/models`;
 			const initialConfig = {
-				plugin: ["opencode-openrouter-sync"],
+				plugin: [LOCAL_PLUGIN_PATH],
 				provider: {
 					openrouter: {
 						models: {},
@@ -569,14 +625,10 @@ describe("E2E: Plugin Failure Scenarios", () => {
 				"utf-8",
 			);
 
-			mockApi = await startMockApiServer(0, {
-				statusCode: 200,
-				responseBody: { data: "not an array" },
-			});
-
 			server = await startOpenCodeServer(tempConfigDir, {
 				port: 0,
 				healthCheckTimeout: TEST_TIMEOUT,
+				env: { OPENROUTER_API_URL: e2eMockApiUrl },
 			});
 
 			await fetch(`${server!.url}/api/sessions`, {

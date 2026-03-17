@@ -6,10 +6,23 @@ import * as path from 'path';
 import * as os from 'os';
 import type { CacheData, SyncConfig } from './types';
 
-const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function getDefaultCacheDir(): string {
+  // If OPENCODE_CONFIG_DIR is set, derive cache dir from it
+  // Otherwise use default ~/.local/share/opencode/openrouter-sync
+  const configDir = process.env.OPENCODE_CONFIG_DIR;
+  if (configDir) {
+    // If config is in ~/.config/opencode, cache should be in ~/.local/share/opencode
+    // If config is in custom dir, cache should be in {customParent}/share/opencode/openrouter-sync
+    const parentDir = path.dirname(configDir);
+    return path.join(parentDir, 'share', 'opencode', 'openrouter-sync');
+  }
+  return path.join(os.homedir(), '.local', 'share', 'opencode', 'openrouter-sync');
+}
 
 const defaultConfig: SyncConfig = {
-  cacheDir: path.join(os.homedir(), '.local', 'share', 'opencode', 'openrouter-sync'),
+  cacheDir: getDefaultCacheDir(),
   cacheFile: 'cache.json',
   cacheTtlMs: DEFAULT_CACHE_TTL_MS,
   apiEndpoint: 'https://openrouter.ai/api/v1/models',

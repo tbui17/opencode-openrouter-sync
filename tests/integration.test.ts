@@ -8,7 +8,6 @@ import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { mkdir, writeFile, readFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-
 import {
   readCache,
   writeCache,
@@ -24,7 +23,9 @@ import {
   convertToConfigModel,
 } from '../src/config.js';
 import { fetchModels } from '../src/api.js';
-import type { OpenRouterModel, CacheData } from '../src/types.js';
+import { performSync, type SyncDeps } from '../src/plugin.js';
+import type { OpenRouterModel, CacheData, PluginContext } from '../src/types.js';
+import { schema } from '../src/schema.js';
 
 function createMockModel(id: string, overrides?: Partial<OpenRouterModel>): OpenRouterModel {
   return {
@@ -688,5 +689,243 @@ describe('End-to-End Sync Scenarios', () => {
       expect(fallbackCache?.models).toHaveLength(2);
       expect(fallbackCache?.models[0].id).toBe('cached-model-1');
     });
+  });
+});
+
+describe('performSync file write integration', () => {
+  let tempDir: string;
+  let configDir: string;
+  let configPath: string;
+  let originalFetch: typeof globalThis.fetch;
+  let originalConfigDir: string | undefined;
+
+  beforeEach(async () => {
+    tempDir = join(tmpdir(), `openrouter-performsync-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    configDir = join(tempDir, 'config', 'opencode');
+    configPath = join(configDir, 'opencode.json');
+
+    await mkdir(configDir, { recursive: true });
+
+    originalFetch = globalThis.fetch;
+    originalConfigDir = process.env.OPENCODE_CONFIG_DIR;
+    process.env.OPENCODE_CONFIG_DIR = configDir;
+  });
+
+  afterEach(async () => {
+    globalThis.fetch = originalFetch;
+    if (originalConfigDir === undefined) {
+      delete process.env.OPENCODE_CONFIG_DIR;
+    } else {
+      process.env.OPENCODE_CONFIG_DIR = originalConfigDir;
+    }
+    try {
+      await rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  function createMockCtx(): PluginContext {
+    return {
+      client: {
+        app: { log: () => {} },
+        config: {
+          get: async () => ({}),
+          set: async () => {},
+        },
+      },
+    };
+  }
+
+  it('should write models to config file on disk via performSync', async () => {
+    // Create an empty config file
+    await writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }, null, 2), 'utf-8');
+
+    const mockModels = [
+      createMockModel('openai/gpt-4', {
+        pricing: { prompt: '0.00003', completion: '0.00006', input_cache_read: '0.000015' },
+        context_length: 128000,
+        top_provider: { context_length: 128000, max_completion_tokens: 4096, is_moderated: false },
+      }),
+      createMockModel('anthropic/claude-3-opus', {
+        pricing: { prompt: '0.000015', completion: '0.000075', input_cache_read: '0.0000075' },
+        context_length: 200000,
+        top_provider: { context_length: 200000, max_completion_tokens: 4096, is_moderated: false },
+      }),
+    ];
+
+    // Cache dir derived from OPENCODE_CONFIG_DIR by getDefaultCacheDir logic:
+    // parentDir = dirname(configDir) = tempDir/config
+    // cacheDir = parentDir/share/opencode/openrouter-sync
+    const cacheDir = join(tempDir, 'config', 'share', 'opencode', 'openrouter-sync');
+
+    const deps: SyncDeps = {
+      readCache: () => readCache({ cacheDir }),
+      writeCache: (data) => writeCache(data, { cacheDir }),
+      isCacheValid: (data, ttlMs) => isCacheValid(data, ttlMs),
+      fetchModels: async () => ({ data: mockModels }),
+      updateModels: (models, configPath, log) => updateModels(models, configPath, log),
+      readConfig: () => readConfig(),
+    };
+
+    const ctx = createMockCtx();
+    await performSync(ctx, deps);
+
+    // Assert: config file on disk contains the models
+    const configContent = await readFile(configPath, 'utf-8');
+    const config = JSON.parse(configContent);
+
+    expect(config.provider.openrouter.models).toBeDefined();
+    const models = config.provider.openrouter.models;
+    expect(Object.keys(models)).toHaveLength(2);
+    expect(models['openai/gpt-4']).toBeDefined();
+    expect(models['anthropic/claude-3-opus']).toBeDefined();
+
+    // Assert: model entries have correct shape (cost, limit, name)
+    const gpt4 = models['openai/gpt-4'];
+    expect(gpt4.name).toBe('Model openai/gpt-4');
+    expect(gpt4.cost).toBeDefined();
+    expect(gpt4.cost.input).toBe(0.00003);
+    expect(gpt4.cost.output).toBe(0.00006);
+    expect(gpt4.limit).toBeDefined();
+    expect(gpt4.limit.context).toBe(128000);
+    expect(gpt4.limit.output).toBe(4096);
+
+    // Assert: no raw API fields leaked
+    expect(gpt4.id).toBeUndefined();
+    expect(gpt4.pricing).toBeUndefined();
+    expect(gpt4.top_provider).toBeUndefined();
+    expect(gpt4.architecture).toBeUndefined();
+
+    // Assert: cache file was written to disk
+    const cacheContent = await readFile(join(cacheDir, 'cache.json'), 'utf-8');
+    const cacheData = JSON.parse(cacheContent);
+    expect(cacheData.models).toHaveLength(2);
+    expect(cacheData.timestamp).toBeGreaterThan(0);
+  });
+
+  it('should skip sync when cache file on disk is still valid', async () => {
+    const cacheDir = join(tempDir, 'config', 'share', 'opencode', 'openrouter-sync');
+    await mkdir(cacheDir, { recursive: true });
+
+    // Write a valid cache to disk
+    const cachedModels = [createMockModel('cached/model')];
+    await writeCache({ models: cachedModels, timestamp: Date.now() }, { cacheDir });
+
+    // Write config with no models
+    await writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }, null, 2), 'utf-8');
+
+    let fetchCalled = false;
+    const deps: SyncDeps = {
+      readCache: () => readCache({ cacheDir }),
+      writeCache: (data) => writeCache(data, { cacheDir }),
+      isCacheValid: (data, ttlMs) => isCacheValid(data, ttlMs),
+      fetchModels: async () => {
+        fetchCalled = true;
+        return { data: [] };
+      },
+      updateModels: (models, configPath, log) => updateModels(models, configPath, log),
+      readConfig: () => readConfig(),
+    };
+
+    const ctx = createMockCtx();
+    await performSync(ctx, deps);
+
+    // fetchModels should NOT have been called because cache is valid
+    expect(fetchCalled).toBe(false);
+
+    // Config should remain unchanged (no models added)
+    const configContent = await readFile(configPath, 'utf-8');
+    const config = JSON.parse(configContent);
+    expect(Object.keys(config.provider.openrouter.models)).toHaveLength(0);
+  });
+
+  it('should produce model entries conforming to the OpenCode JSON schema', async () => {
+    // Extract the model entry schema from src/schema.ts:
+    // schema.provider (optional) -> record value -> .models (optional) -> record value
+    const providerRecord = schema.shape.provider.unwrap(); // ZodRecord
+    const providerObj = providerRecord._def.valueType;     // provider object schema
+    const modelsRecord = providerObj.shape.models.unwrap(); // ZodRecord
+    const openCodeModelSchema = modelsRecord._def.valueType; // model entry schema (.strict())
+
+    // Create config file
+    await writeFile(configPath, JSON.stringify({
+      provider: { openrouter: { models: {} } }
+    }, null, 2), 'utf-8');
+
+    const mockModels = [
+      createMockModel('openai/gpt-4', {
+        pricing: { prompt: '0.00003', completion: '0.00006', input_cache_read: '0.000015' },
+        context_length: 128000,
+        top_provider: { context_length: 128000, max_completion_tokens: 4096, is_moderated: false },
+        supported_parameters: ['temperature', 'tools', 'reasoning'],
+        architecture: {
+          modality: 'text+image->text',
+          input_modalities: ['text', 'image'],
+          output_modalities: ['text'],
+          tokenizer: 'gpt-4',
+          instruct_type: null,
+        },
+      }),
+      createMockModel('anthropic/claude-3-opus', {
+        pricing: { prompt: '0.000015', completion: '0.000075', input_cache_read: '0.0000075' },
+        context_length: 200000,
+        top_provider: { context_length: 200000, max_completion_tokens: 4096, is_moderated: false },
+        supported_parameters: ['temperature', 'max_tokens'],
+        architecture: {
+          modality: 'text+image->text',
+          input_modalities: ['text', 'image', 'pdf'],
+          output_modalities: ['text'],
+          tokenizer: 'claude',
+          instruct_type: null,
+        },
+      }),
+      createMockModel('meta/llama-3', {
+        pricing: { prompt: '0.000001', completion: '0.000002', input_cache_read: '0' },
+        context_length: 8192,
+        top_provider: { context_length: 8192, max_completion_tokens: 2048, is_moderated: false },
+        supported_parameters: ['temperature'],
+        architecture: {
+          modality: 'text->text',
+          input_modalities: ['text'],
+          output_modalities: ['text'],
+          tokenizer: 'llama',
+          instruct_type: null,
+        },
+      }),
+    ];
+
+    const cacheDir = join(tempDir, 'config', 'share', 'opencode', 'openrouter-sync');
+
+    const deps: SyncDeps = {
+      readCache: () => readCache({ cacheDir }),
+      writeCache: (data) => writeCache(data, { cacheDir }),
+      isCacheValid: (data, ttlMs) => isCacheValid(data, ttlMs),
+      fetchModels: async () => ({ data: mockModels }),
+      updateModels: (models, configPath, log) => updateModels(models, configPath, log),
+      readConfig: () => readConfig(),
+    };
+
+    await performSync(createMockCtx(), deps);
+
+    const configContent = await readFile(configPath, 'utf-8');
+    const config = JSON.parse(configContent);
+    const models = config.provider.openrouter.models;
+
+    // Validate every model entry against the OpenCode schema
+    for (const [modelId, modelEntry] of Object.entries(models)) {
+      const result = openCodeModelSchema.safeParse(modelEntry);
+      expect(result.success).toBe(true);
+      if (!result.success) {
+        console.error(`Schema validation failed for ${modelId}:`, result.error.issues);
+      }
+    }
+
+    // Sanity check: all 3 models were written
+    expect(Object.keys(models)).toHaveLength(3);
   });
 });

@@ -5,12 +5,13 @@
 
 import type { OpenRouterModel, OpenRouterResponse, FetchResult } from './types';
 
-const API_ENDPOINT = 'https://openrouter.ai/api/v1/models';
+const DEFAULT_API_ENDPOINT = 'https://openrouter.ai/api/v1/models';
 const DEFAULT_TIMEOUT_MS = 30000;
 
-/**
- * Error messages for different failure scenarios
- */
+export interface FetchModelsOptions {
+  apiUrl?: string;
+}
+
 const ErrorMessages = {
   NETWORK_ERROR: 'Network error while fetching OpenRouter models',
   TIMEOUT: 'Request timed out after 30 seconds',
@@ -20,16 +21,20 @@ const ErrorMessages = {
   UNKNOWN: 'Unknown error occurred while fetching OpenRouter models',
 } as const;
 
-/**
- * Fetch models from OpenRouter API
- * @returns FetchResult with data on success, error on failure
- */
-export async function fetchModels(): Promise<FetchResult> {
+function getApiEndpoint(options?: FetchModelsOptions): string {
+  if (options?.apiUrl) {
+    return options.apiUrl;
+  }
+  return process.env.OPENROUTER_API_URL ?? DEFAULT_API_ENDPOINT;
+}
+
+export async function fetchModels(options: FetchModelsOptions = {}): Promise<FetchResult> {
+  const endpoint = getApiEndpoint(options);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
   try {
-    const response = await fetch(API_ENDPOINT, {
+    const response = await fetch(endpoint, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

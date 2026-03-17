@@ -52,7 +52,9 @@ export async function resolveGlobalConfigPath(customPath?: string): Promise<stri
   if (customPath) {
     return customPath;
   }
-  const configDir = join(homedir(), '.config', 'opencode');
+
+  // Check for OPENCODE_CONFIG_DIR env var (used by E2E tests and custom installs)
+  const configDir = process.env.OPENCODE_CONFIG_DIR ?? join(homedir(), '.config', 'opencode');
   const jsoncPath = join(configDir, 'opencode.jsonc');
   if (await fileExists(jsoncPath)) {
     return jsoncPath;

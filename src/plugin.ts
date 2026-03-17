@@ -7,35 +7,50 @@
 
 import type { PluginContext, CacheData, OpenRouterModel, FetchResult } from "./types.js";
 import { readCache, writeCache, isCacheValid } from "./cache.js";
-import { fetchModels } from "./api.js";
-import { updateModels } from "./config.js";
+import { fetchModels, type FetchModelsOptions } from "./api.js";
+import { readConfig, updateModels } from "./config.js";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SERVICE_NAME = "openrouter-sync";
 
-/**
- * Injectable dependencies for performSync, enabling testability
- */
 export interface SyncDeps {
   readCache: () => Promise<CacheData | null>;
   writeCache: (data: CacheData) => Promise<void>;
   isCacheValid: (data: CacheData | null, ttlMs: number) => boolean;
-  fetchModels: () => Promise<FetchResult>;
+  fetchModels: (options?: FetchModelsOptions) => Promise<FetchResult>;
   updateModels: (
     models: OpenRouterModel[],
     configPath?: string,
     log?: (msg: string) => void,
   ) => Promise<{ added: number; skipped: number; removed: number }>;
+  readConfig: () => Promise<Record<string, unknown> | null>;
 }
 
 const defaultDeps: SyncDeps = {
   readCache: () => readCache(),
   writeCache: (data) => writeCache(data),
   isCacheValid: (data, ttlMs) => isCacheValid(data, ttlMs),
-  fetchModels: () => fetchModels(),
+  fetchModels: (options) => fetchModels(options),
   updateModels: (models, configPath, log) =>
     updateModels(models, configPath, log),
+  readConfig: () => readConfig(),
 };
+
+function getApiUrlFromConfig(config: Record<string, unknown> | null): string | undefined {
+  if (!config) return undefined;
+  
+  const provider = config.provider as Record<string, unknown> | undefined;
+  if (!provider) return undefined;
+  
+  const openrouter = provider.openrouter as Record<string, unknown> | undefined;
+  if (!openrouter) return undefined;
+  
+  const options = openrouter.options as Record<string, unknown> | undefined;
+  if (!options) return undefined;
+  
+  const apiUrl = options.apiUrl;
+  return typeof apiUrl === 'string' ? apiUrl : undefined;
+}
 
 export async function performSync(
   ctx: PluginContext,
@@ -69,7 +84,10 @@ export async function performSync(
       },
     });
 
-    const modelsResult = await deps.fetchModels();
+    const config = await deps.readConfig();
+    const apiUrl = getApiUrlFromConfig(config);
+
+    const modelsResult = await deps.fetchModels(apiUrl ? { apiUrl } : undefined);
 
     if ('error' in modelsResult) {
       client.app.log({

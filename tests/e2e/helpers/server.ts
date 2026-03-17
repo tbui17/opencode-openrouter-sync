@@ -5,9 +5,13 @@
 
 import { type ChildProcess, spawn } from "node:child_process";
 
-const DEFAULT_PORT = 4096;
-const HEALTH_CHECK_TIMEOUT_MS = 30000;
+const DEFAULT_PORT = 0; // Use 0 to let OS pick available port
+const STARTUP_TIMEOUT_MS = 30000;
 const HEALTH_CHECK_INTERVAL_MS = 500;
+
+// Regex to parse the actual port from server output:
+// "opencode server listening on http://127.0.0.1:12345"
+const PORT_REGEX = /listening on http:\/\/127\.0\.0\.1:(\d+)/;
 
 export interface OpenCodeServer {
 	port: number;
@@ -18,6 +22,7 @@ export interface OpenCodeServer {
 export interface StartOptions {
 	port?: number;
 	healthCheckTimeout?: number;
+	env?: Record<string, string>;
 }
 
 /**
@@ -34,7 +39,6 @@ export async function isOpenCodeAvailable(): Promise<boolean> {
 		proc.on("error", () => resolve(false));
 		proc.on("close", (code) => resolve(code === 0));
 
-		// Timeout after 5 seconds
 		setTimeout(() => {
 			proc.kill();
 			resolve(false);
@@ -42,36 +46,13 @@ export async function isOpenCodeAvailable(): Promise<boolean> {
 	});
 }
 
-async function waitForHealthCheck(
-	port: number,
-	timeoutMs: number,
-): Promise<boolean> {
-	const startTime = Date.now();
-	const healthUrl = `http://localhost:${port}/global/health`;
-
-	while (Date.now() - startTime < timeoutMs) {
-		try {
-			const response = await fetch(healthUrl, {
-				method: "GET",
-				signal: AbortSignal.timeout(2000),
-			});
-
-			if (response.ok) {
-				const data = (await response.json()) as { healthy?: boolean };
-				if (data.healthy === true) {
-					return true;
-				}
-			}
-		} catch {
-			// Intentionally empty - continue polling on error
-		}
-
-		await new Promise((resolve) =>
-			setTimeout(resolve, HEALTH_CHECK_INTERVAL_MS),
-		);
-	}
-
-	return false;
+/**
+ * Parse the actual port from server stdout
+ * Server outputs: "opencode server listening on http://127.0.0.1:PORT"
+ */
+function parsePortFromOutput(output: string): number | null {
+	const match = output.match(PORT_REGEX);
+	return match ? Number.parseInt(match[1], 10) : null;
 }
 
 /**
@@ -85,13 +66,14 @@ export async function startOpenCodeServer(
 	configDir: string,
 	options: StartOptions = {},
 ): Promise<OpenCodeServer> {
-	const port = options.port ?? DEFAULT_PORT;
-	const timeout = options.healthCheckTimeout ?? HEALTH_CHECK_TIMEOUT_MS;
+	const requestedPort = options.port ?? DEFAULT_PORT;
+	const timeout = options.healthCheckTimeout ?? STARTUP_TIMEOUT_MS;
 
-	const proc = spawn("opencode", ["serve", "--port", String(port)], {
+	const proc = spawn("opencode", ["serve", "--port", String(requestedPort)], {
 		env: {
 			...process.env,
 			OPENCODE_CONFIG_DIR: configDir,
+			...options.env,
 		},
 		stdio: ["ignore", "pipe", "pipe"],
 		shell: process.platform === "win32",
@@ -100,6 +82,7 @@ export async function startOpenCodeServer(
 
 	let exitCode: number | null = null;
 	let exitError: Error | null = null;
+	let stdoutBuffer = "";
 
 	proc.on("error", (err) => {
 		exitError = err;
@@ -109,26 +92,60 @@ export async function startOpenCodeServer(
 		exitCode = code;
 	});
 
-	const isHealthy = await waitForHealthCheck(port, timeout);
+	proc.stdout?.on("data", (data: Buffer) => {
+		stdoutBuffer += data.toString();
+	});
 
-	if (exitCode !== null) {
-		throw new Error(
-			`OpenCode server exited with code ${exitCode} during startup${exitError ? `: ${exitError.message}` : ""}`,
+	proc.stderr?.on("data", (data: Buffer) => {
+		stdoutBuffer += data.toString();
+	});
+
+	const startTime = Date.now();
+	let actualPort: number | null = null;
+
+	while (Date.now() - startTime < timeout) {
+		if (exitCode !== null) {
+			throw new Error(
+				`OpenCode server exited with code ${exitCode} during startup${exitError ? `: ${exitError.message}` : ""}`,
+			);
+		}
+
+		if (actualPort === null) {
+			actualPort = parsePortFromOutput(stdoutBuffer);
+		}
+
+		if (actualPort !== null) {
+			const healthUrl = `http://localhost:${actualPort}/global/health`;
+			try {
+				const response = await fetch(healthUrl, {
+					method: "GET",
+					signal: AbortSignal.timeout(2000),
+				});
+
+				if (response.ok) {
+					const data = (await response.json()) as { healthy?: boolean };
+					if (data.healthy === true) {
+						return {
+							port: actualPort,
+							url: `http://localhost:${actualPort}`,
+							process: proc,
+						};
+					}
+				}
+			} catch {
+				// Continue polling
+			}
+		}
+
+		await new Promise((resolve) =>
+			setTimeout(resolve, HEALTH_CHECK_INTERVAL_MS),
 		);
 	}
 
-	if (!isHealthy) {
-		killProcess(proc);
-		throw new Error(
-			`OpenCode server health check failed after ${timeout}ms timeout`,
-		);
-	}
-
-	return {
-		port,
-		url: `http://localhost:${port}`,
-		process: proc,
-	};
+	killProcess(proc);
+	throw new Error(
+		`OpenCode server startup failed after ${timeout}ms timeout. Output: ${stdoutBuffer.slice(0, 500)}`,
+	);
 }
 
 function killProcess(proc: ChildProcess): void {
