@@ -1,18 +1,118 @@
+# Build & Test Commands
+
+```bash
+npm run build          # Compile TypeScript to dist/
+npm run typecheck      # Type check without emitting
+npm test               # Run all tests
+npm test -- tests/tui.test.ts           # Run single test file
+npm test -- tests/plugin.test.ts        # Run single test file
+npm run test:run       # Run tests once (no watch)
+npm run clean          # Remove dist/ directory
+```
+
 # Rules
 - Always use context7 / webfetch to research opencode docs at https://opencode.ai/docs before planning or implementating changes.
-- Research other people's implementation of plugins on https://github.com/awesome-opencode/awesome-opencode for best practices, but prefer the ones with more stars. Find problems they might have run into so you don't run into them yourself.
+- Research other people's implementation of plugins on https://github.com/awesome-opencode/awesome-opencode for best practices, but prefer the ones with more stars.
 - Create unit / integration tests for your changes.
 - Ensure code is SOLID, DRY, modular, and maintainable.
-- Keep I/O, infrastructure, and heavy external dependencies at the edge, heavy logic should be easily unit testable. Adhere to hexagonal design principles. Adhere to hexagonal design principles.
+- Keep I/O, infrastructure, and heavy external dependencies at the edge. Heavy logic should be easily unit testable.
 - Prefer refactoring code to improve testability over using mocks. Mocks should be minimal.
-- Research libraries that have already solved your particular problem before attempting to write your own implementation.
-- Always prefer asking questions for clarity over attempting to solve a problem you have low confidence in. Before doing so, ensure your question is well-formed by researching beforehand. If research sufficiently addresses the inquiry, you can proceed with implementation.
+- Research libraries that have already solved your problem before attempting to write your own implementation.
+- Always prefer asking questions for clarity over attempting to solve a problem you have low confidence in.
 
-# OpenCode Plugin Development Learnings
+# Code Style Guidelines
 
-## Plugin Loading Behavior
+## Imports
 
-**CRITICAL**: OpenCode treats ALL exports from the main entry file as plugin instances and attempts to call them.
+```typescript
+// Use .js extension for local imports (required for ESM)
+import { something } from './module.js';
+import type { SomeType } from './types.js';
+
+// Node built-ins
+import { readFile, writeFile } from 'fs/promises';
+import { join, dirname } from 'path';
+```
+
+## Formatting
+
+- 2-space indentation
+- Single quotes for strings (double quotes in JSON)
+- Trailing commas in multiline arrays/objects
+- Max line length: ~100 chars
+
+## Types
+
+```typescript
+// Prefer interfaces for object shapes
+export interface ModelConfig { id: string; name?: string; }
+
+// Use discriminated unions for results
+export type FetchResult = { data: Model[] } | { error: ApiError };
+
+// Use const objects for string unions
+const ErrorMessages = { NETWORK_ERROR: 'Network error' } as const;
+
+// Type guards for runtime validation
+function isValidModel(data: unknown): data is Model {
+  return typeof data === 'object' && data !== null && 'id' in data;
+}
+```
+
+## Functions
+
+```typescript
+// Pure functions at module level, exported for testability
+export async function fetchModels(): Promise<FetchResult> { /* ... */ }
+
+// Helper functions are private (not exported)
+function processData(data: unknown): Result { /* ... */ }
+
+// Use async/await, not .then() chains
+const result = await fetch(url);
+```
+
+## Error Handling
+
+```typescript
+// Return structured errors, don't throw
+return { error: { type: 'network', message: 'Failed to fetch' } };
+
+// Log errors at the edge (in plugin.ts, not utilities)
+console.error(`${ErrorMessages.NETWORK_ERROR}: ${error.message}`);
+
+// Always handle both branches of discriminated unions
+if ('error' in result) { /* handle error */ } 
+else { /* use result.data */ }
+```
+
+## Testing (bun:test)
+
+```typescript
+import { describe, test, expect, mock, beforeEach, afterEach } from 'bun:test';
+
+describe('moduleName', () => {
+  test('does something', () => { expect(result).toBe(expected); });
+  test('handles errors', async () => { expect('error' in result).toBe(true); });
+});
+
+// Helper functions at top of test file
+function createMockModel(overrides = {}): Model {
+  return { id: 'test', ...overrides };
+}
+```
+
+## Comments
+
+- Only when code cannot be self-documenting
+- JSDoc for exported interfaces and types
+- No inline comments for obvious code
+
+# OpenCode Plugin Development
+
+## Plugin Loading (CRITICAL)
+
+OpenCode treats ALL exports from `src/index.ts` as plugin instances and calls them.
 
 ```typescript
 // WRONG - will cause "syncModels is not a function" error
@@ -24,28 +124,13 @@ export default MyPlugin;
 export type { SomeType } from './types.js';
 ```
 
-Reference: oh-my-openagent source comment:
-> `// NOTE: Do NOT export functions from main index.ts! OpenCode treats ALL exports as plugin instances and calls them.`
+## Subpath Exports
 
-## Plugin Distribution via npm
-
-OpenCode supports npm packages in the `plugin` array:
-- Add `"plugin": ["package-name"]` to `opencode.json`
-- OpenCode auto-installs packages at startup using Bun
-- Packages are cached in `~/.cache/opencode/node_modules/`
-
-## Subpath Exports Pattern
-
-Utility functions that shouldn't be called as plugins must use subpath exports:
+Utility functions that shouldn't be called as plugins use subpath exports:
 
 ```json
 // package.json
-{
-  "exports": {
-    ".": "./dist/index.js",
-    "./sync": "./dist/sync.js"
-  }
-}
+{ "exports": { ".": "./dist/index.js", "./sync": "./dist/sync.js" } }
 ```
 
 ```typescript
@@ -53,93 +138,28 @@ Utility functions that shouldn't be called as plugins must use subpath exports:
 import { syncModels } from 'opencode-openrouter-sync/sync';
 ```
 
-## Main Entry Export Structure
-
-The main entry file (`src/index.ts`) MUST follow this pattern:
-
-```typescript
-// 1. Import plugin implementation
-import { OpenRouterModelSyncPlugin } from './plugin.js';
-
-// 2. Export ONLY default (plugin function) and types
-export default OpenRouterModelSyncPlugin;
-export type { OpenRouterModel, SyncResult, CacheData } from './types.js';
-
-// NEVER export named functions, constants, or classes
-// They will be invoked as plugins and fail
-```
-
 ## Testing Isolation
 
 Tests that modify config files MUST use isolated temp directories:
 
 ```typescript
-// Use unique temp paths per test file
 const tempDir = await mkdtemp(join(tmpdir(), 'openrouter-sync-test-'));
-const tempConfigPath = join(tempDir, 'opencode.json');
-const tempCachePath = join(tempDir, 'cache.json');
-
-// Mock environment paths
-mock.method(config, 'getConfigPath', () => tempConfigPath);
-mock.method(cache, 'getCachePath', () => tempCachePath);
-
-// Cleanup after tests
-await rm(tempDir, { recursive: true, force: true });
+// ... use tempDir for test paths ...
+await rm(tempDir, { recursive: true, force: true });  // Cleanup after tests
 ```
 
 Never run tests against real user config (`~/.config/opencode/opencode.json`).
 
 # CI/CD & Release Process
 
-This project uses **Release Please** for automated versioning and **npm OIDC Trusted Publishing** for secure package releases without long-lived tokens.
+Uses **Release Please** for automated versioning and **npm OIDC** for secure publishing.
 
-## How Releases Work
+## Conventional Commits
 
-1. **Make changes** using conventional commits:
-   - `feat: add new feature` → minor version bump (1.0.0 → 1.1.0)
-   - `fix: patch bug` → patch version bump (1.0.0 → 1.0.1)
-   - `feat!: breaking change` or `feat: add feature\n\nBREAKING CHANGE: ...` → major bump (1.0.0 → 2.0.0)
+| Type | Effect |
+|------|--------|
+| `feat:` | Minor version bump |
+| `fix:` | Patch version bump |
+| `feat!:` or `BREAKING CHANGE:` | Major version bump |
 
-2. **Push to main** → Release Please creates/updates a "Release PR" with:
-   - Version bump in `package.json`
-   - Updated `CHANGELOG.md`
-   - List of changes since last release
-
-3. **Merge the Release PR** → automatically:
-   - Creates a GitHub Release
-   - Triggers `publish.yml` workflow
-   - Publishes to npm with provenance via OIDC
-
-## Workflows
-
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| `ci.yml` | Push/PR to main | Run tests, typecheck, build |
-| `release-please.yml` | Push to main | Manage Release PRs |
-| `publish.yml` | GitHub Release published | Publish to npm via OIDC |
-
-## OIDC Trusted Publishing
-
-This project uses npm OIDC instead of `NPM_TOKEN`. No secrets required.
-
-**Key configuration:**
-- `permissions.id-token: write` in `publish.yml`
-- Trusted publisher configured at npmjs.com
-- Repository field in `package.json` for provenance
-
-**See:** [docs/npm-oidc-trusted-publishing.md](docs/npm-oidc-trusted-publishing.md) for detailed setup guide.
-
-## Conventional Commit Reference
-
-```
-feat:     A new feature
-fix:      A bug fix
-docs:     Documentation only changes
-style:    Changes that do not affect the meaning of the code
-refactor: A code change that neither fixes a bug nor adds a feature
-perf:     A code change that improves performance
-test:     Adding missing tests or correcting existing tests
-chore:    Changes to build process or auxiliary tools
-```
-
-For breaking changes, use `!` after the type or add `BREAKING CHANGE:` in the footer.
+Push to main → Release Please creates PR → Merge → Auto-publishes to npm.
