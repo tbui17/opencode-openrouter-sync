@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const schema = z
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const schema: z.ZodType<any> = z
   .object({
     $schema: z
       .string()
