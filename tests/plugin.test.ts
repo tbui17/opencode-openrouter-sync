@@ -53,6 +53,7 @@ function createDeps(overrides: Partial<SyncDeps> = {}): SyncDeps {
     isCacheValid: mock(() => false),
     fetchModels: mock(async () => ({ data: [createMockModel('test/model')] })),
     updateModels: mock(async () => ({ added: 1, skipped: 0, removed: 0 })),
+    readConfig: mock(async () => null),
     ...overrides,
   };
 }

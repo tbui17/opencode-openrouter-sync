@@ -29,3 +29,6 @@ jobs:
 
       - name: Test
         run: bun test
+
+      - name: E2E Tests
+        run: bun test tests/e2e/
