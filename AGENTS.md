@@ -7,6 +7,12 @@ npm test               # Run all tests
 npm test -- tests/tui.test.ts           # Run single test file
 npm test -- tests/plugin.test.ts        # Run single test file
 npm run test:run       # Run tests once (no watch)
+npm run lint           # Check linting + formatting
+npm run lint:fix       # Auto-fix lint + formatting issues
+npm run lint:fix-unsafe # Auto-fix with unsafe fixes
+npm run format         # Check formatting only
+npm run format:fix     # Auto-fix formatting only
+npm run format:fix-unsafe # Auto-fix formatting with unsafe fixes
 npm run clean          # Remove dist/ directory
 ```
 
@@ -101,6 +107,14 @@ function createMockModel(overrides = {}): Model {
   return { id: 'test', ...overrides };
 }
 ```
+
+## Linting (Biome)
+
+- Use `biome-ignore` comments (not `eslint-disable`) with an explanation after the colon:
+  ```typescript
+  // biome-ignore lint/suspicious/noExplicitAny: reason here
+  ```
+- Linting is disabled for test files (`tests/**`, `**/*.test.ts`, `**/*.spec.ts`); formatting still applies.
 
 ## Comments
 

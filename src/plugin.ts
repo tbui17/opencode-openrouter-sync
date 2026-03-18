@@ -5,18 +5,18 @@
  * to the global OpenCode configuration. It runs once per 24 hours on startup.
  */
 
+import { type FetchModelsOptions, fetchModels } from './api.js';
+import { isCacheValid, readCache, writeCache } from './cache.js';
+import { readConfig, updateModels } from './config.js';
 import type {
-  PluginContext,
   CacheData,
-  OpenRouterModel,
   FetchResult,
-} from "./types.js";
-import { readCache, writeCache, isCacheValid } from "./cache.js";
-import { fetchModels, type FetchModelsOptions } from "./api.js";
-import { readConfig, updateModels } from "./config.js";
+  OpenRouterModel,
+  PluginContext,
+} from './types.js';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const SERVICE_NAME = "openrouter-sync";
+const SERVICE_NAME = 'openrouter-sync';
 
 export interface SyncDeps {
   readCache: (log?: (msg: string) => void) => Promise<CacheData | null>;
@@ -62,7 +62,7 @@ function getApiUrlFromConfig(
   if (!options) return undefined;
 
   const apiUrl = options.apiUrl;
-  return typeof apiUrl === "string" ? apiUrl : undefined;
+  return typeof apiUrl === 'string' ? apiUrl : undefined;
 }
 
 export async function performSync(
@@ -75,7 +75,7 @@ export async function performSync(
     client.app.log({
       body: {
         service: SERVICE_NAME,
-        level: "debug",
+        level: 'debug',
         message: msg,
       },
     });
@@ -88,8 +88,8 @@ export async function performSync(
       client.app.log({
         body: {
           service: SERVICE_NAME,
-          level: "info",
-          message: "Cache is still valid, skipping sync",
+          level: 'info',
+          message: 'Cache is still valid, skipping sync',
           extra: {
             lastSync: new Date(cached.timestamp).toISOString(),
             modelCount: cached.models.length,
@@ -102,8 +102,8 @@ export async function performSync(
     client.app.log({
       body: {
         service: SERVICE_NAME,
-        level: "info",
-        message: "Starting OpenRouter model sync",
+        level: 'info',
+        message: 'Starting OpenRouter model sync',
       },
     });
 
@@ -114,11 +114,11 @@ export async function performSync(
       apiUrl ? { apiUrl, log } : { log },
     );
 
-    if ("error" in modelsResult) {
+    if ('error' in modelsResult) {
       client.app.log({
         body: {
           service: SERVICE_NAME,
-          level: "warn",
+          level: 'warn',
           message: `Failed to fetch models from OpenRouter API: ${modelsResult.error.message}`,
         },
       });
@@ -130,7 +130,7 @@ export async function performSync(
     client.app.log({
       body: {
         service: SERVICE_NAME,
-        level: "info",
+        level: 'info',
         message: `Fetched ${models.length} models from OpenRouter API`,
       },
     });
@@ -140,8 +140,8 @@ export async function performSync(
     client.app.log({
       body: {
         service: SERVICE_NAME,
-        level: "info",
-        message: "Model sync completed",
+        level: 'info',
+        message: 'Model sync completed',
         extra: {
           added: result.added,
           skipped: result.skipped,
@@ -161,8 +161,8 @@ export async function performSync(
     client.app.log({
       body: {
         service: SERVICE_NAME,
-        level: "info",
-        message: "Cache updated successfully",
+        level: 'info',
+        message: 'Cache updated successfully',
       },
     });
   } catch (error) {
@@ -170,8 +170,8 @@ export async function performSync(
     client.app.log({
       body: {
         service: SERVICE_NAME,
-        level: "error",
-        message: "Error during model sync",
+        level: 'error',
+        message: 'Error during model sync',
         extra: {
           error: errorMessage,
         },
@@ -186,13 +186,13 @@ export default async function OpenRouterModelSyncPlugin(ctx: PluginContext) {
   client.app.log({
     body: {
       service: SERVICE_NAME,
-      level: "info",
-      message: "OpenRouter Model Sync plugin installed",
+      level: 'info',
+      message: 'OpenRouter Model Sync plugin installed',
       extra: {
         notification: true,
-        title: "OpenRouter Model Sync",
+        title: 'OpenRouter Model Sync',
         description:
-          "Plugin installed successfully. Models will sync automatically every 24 hours.",
+          'Plugin installed successfully. Models will sync automatically every 24 hours.',
       },
     },
   });
@@ -201,8 +201,8 @@ export default async function OpenRouterModelSyncPlugin(ctx: PluginContext) {
     client.app.log({
       body: {
         service: SERVICE_NAME,
-        level: "error",
-        message: "Error during model sync",
+        level: 'error',
+        message: 'Error during model sync',
         extra: {
           error: errorMessage,
         },

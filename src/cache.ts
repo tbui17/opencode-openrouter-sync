@@ -1,10 +1,11 @@
 /**
  * File-based caching system for OpenRouter model data
  */
-import { promises as fs } from "fs";
-import * as path from "node:path";
-import * as os from "os";
-import type { CacheData, SyncConfig } from "./types";
+
+import { promises as fs } from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import type { CacheData, SyncConfig } from './types';
 
 const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -16,28 +17,28 @@ function getDefaultCacheDir(): string {
     // If config is in ~/.config/opencode, cache should be in ~/.local/share/opencode
     // If config is in custom dir, cache should be in {customParent}/share/opencode/openrouter-sync
     const parentDir = path.dirname(configDir);
-    return path.join(parentDir, "share", "opencode", "openrouter-sync");
+    return path.join(parentDir, 'share', 'opencode', 'openrouter-sync');
   }
   return path.join(
     os.homedir(),
-    ".local",
-    "share",
-    "opencode",
-    "openrouter-sync",
+    '.local',
+    'share',
+    'opencode',
+    'openrouter-sync',
   );
 }
 
 const defaultConfig: SyncConfig = {
   cacheDir: getDefaultCacheDir(),
-  cacheFile: "cache.json",
+  cacheFile: 'cache.json',
   cacheTtlMs: DEFAULT_CACHE_TTL_MS,
-  apiEndpoint: "https://openrouter.ai/api/v1/models",
+  apiEndpoint: 'https://openrouter.ai/api/v1/models',
   apiTimeout: 30000,
   globalConfigPath: path.join(
     os.homedir(),
-    ".config",
-    "opencode",
-    "opencode.json",
+    '.config',
+    'opencode',
+    'opencode.json',
   ),
 };
 
@@ -77,12 +78,12 @@ export function isCacheValid(
   log?: (msg: string) => void,
 ): boolean {
   if (!cacheData) {
-    log?.("Cache data is null, cache invalid");
+    log?.('Cache data is null, cache invalid');
     return false;
   }
 
-  if (!cacheData.timestamp || typeof cacheData.timestamp !== "number") {
-    log?.("Cache has invalid or missing timestamp");
+  if (!cacheData.timestamp || typeof cacheData.timestamp !== 'number') {
+    log?.('Cache has invalid or missing timestamp');
     return false;
   }
 
@@ -118,20 +119,20 @@ export async function readCache(
   log?.(`Reading cache from ${cachePath}`);
 
   try {
-    const data = await fs.readFile(cachePath, "utf-8");
+    const data = await fs.readFile(cachePath, 'utf-8');
     const cacheData: CacheData = JSON.parse(data);
 
     // Validate cache structure
     if (!cacheData.models || !Array.isArray(cacheData.models)) {
       log?.(
-        "Cache file has invalid structure: missing or non-array models field",
+        'Cache file has invalid structure: missing or non-array models field',
       );
       return null;
     }
 
-    if (typeof cacheData.timestamp !== "number") {
+    if (typeof cacheData.timestamp !== 'number') {
       log?.(
-        "Cache file has invalid structure: missing or non-number timestamp",
+        'Cache file has invalid structure: missing or non-number timestamp',
       );
       return null;
     }
@@ -141,7 +142,7 @@ export async function readCache(
     );
     return cacheData;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       log?.(`Cache file not found at ${cachePath}`);
     } else {
       log?.(
@@ -173,7 +174,7 @@ export async function writeCache(
   const tempPath = `${cachePath}.tmp`;
   const data = JSON.stringify(cacheData, null, 2);
 
-  await fs.writeFile(tempPath, data, "utf-8");
+  await fs.writeFile(tempPath, data, 'utf-8');
   await fs.rename(tempPath, cachePath);
   log?.(`Cache written successfully (${data.length} bytes)`);
 }
@@ -193,11 +194,11 @@ export async function clearCache(
 
   try {
     await fs.unlink(cachePath);
-    log?.("Cache cleared successfully");
+    log?.('Cache cleared successfully');
     return true;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      log?.("No cache file to clear");
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      log?.('No cache file to clear');
     } else {
       log?.(
         `Error clearing cache: ${error instanceof Error ? error.message : String(error)}`,

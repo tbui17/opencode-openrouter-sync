@@ -25,6 +25,12 @@
     "test": "bun test",
     "test:e2e": "npm run build && bun test tests/e2e/",
     "test:run": "bun test --run",
+    "lint": "biome check .",
+    "lint:fix": "biome check --fix .",
+    "lint:fix-unsafe": "biome check --fix --unsafe .",
+    "format": "biome format .",
+    "format:fix": "biome format --fix .",
+    "format:fix-unsafe": "biome format --fix --unsafe .",
     "typecheck": "tsc --noEmit",
     "clean": "node -e \"const fs=require('fs');if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true});\"",
     "prepublishOnly": "tsc"
@@ -51,9 +57,10 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.7",
+    "@types/bun": "latest",
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "@types/bun": "latest"
+    "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -2,37 +2,43 @@
  * Tests for config utilities
  */
 
-import { describe, test, expect, beforeAll } from 'bun:test';
-import { readConfig, writeConfig, updateModels, getGlobalConfigPath, resolveGlobalConfigPath, convertToConfigModel } from '../src/config';
-import type { OpenRouterModel, OpenCodeModelEntry } from '../src/types';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { beforeAll, describe, expect, test } from 'bun:test';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+  convertToConfigModel,
+  readConfig,
+  resolveGlobalConfigPath,
+  updateModels,
+  writeConfig,
+} from '../src/config';
+import type { OpenRouterModel } from '../src/types';
 
 let testDir: string;
 
 const testConfigPath = () => join(testDir, 'opencode.json');
 
 beforeAll(async () => {
-  const fs = await import('fs/promises');
+  const fs = await import('node:fs/promises');
   testDir = await fs.mkdtemp(join(tmpdir(), 'config-test-'));
 });
 
 describe('readConfig', () => {
   test('returns default config when file does not exist', async () => {
-    const nonExistentPath = testDir + '/nonexistent.json';
+    const nonExistentPath = `${testDir}/nonexistent.json`;
 
     const config = await readConfig(nonExistentPath);
     expect(config).toEqual({
       provider: {
         openrouter: {
-          models: {}
-        }
-      }
+          models: {},
+        },
+      },
     });
   });
 
   test('returns parsed config for valid JSON', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const testConfig = {
@@ -41,11 +47,11 @@ describe('readConfig', () => {
           models: {
             'test-model': {
               name: 'Test Model',
-            }
-          }
-        }
+            },
+          },
+        },
       },
-      customField: 'test'
+      customField: 'test',
     };
 
     await fs.writeFile(configPath, JSON.stringify(testConfig), 'utf-8');
@@ -56,7 +62,7 @@ describe('readConfig', () => {
   });
 
   test('returns null for malformed JSON', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     await fs.writeFile(configPath, '{ invalid json }', 'utf-8');
@@ -66,7 +72,7 @@ describe('readConfig', () => {
   });
 
   test('ensures provider.openrouter.models exists in returned config', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     await fs.writeFile(configPath, JSON.stringify({}), 'utf-8');
@@ -78,7 +84,7 @@ describe('readConfig', () => {
   });
 
   test('parses JSONC config with single-line comments', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const jsonc = [
@@ -100,7 +106,7 @@ describe('readConfig', () => {
   });
 
   test('parses JSONC config with block comments', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const jsonc = [
@@ -132,7 +138,7 @@ describe('resolveGlobalConfigPath', () => {
   });
 
   test('prefers .jsonc when it exists', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const dir = await fs.mkdtemp(join(tmpdir(), 'resolve-test-'));
     const configDir = join(dir, '.config', 'opencode');
     await fs.mkdir(configDir, { recursive: true });
@@ -142,8 +148,8 @@ describe('resolveGlobalConfigPath', () => {
     await fs.writeFile(join(configDir, 'opencode.jsonc'), '{}', 'utf-8');
 
     // Mock homedir to return our temp dir
-    const os = await import('os');
-    const originalHomedir = os.homedir;
+    const os = await import('node:os');
+    const _originalHomedir = os.homedir;
     // We can't easily mock homedir, so test the function with customPath instead
     // The logic is tested via readConfig with .jsonc files above
 
@@ -159,15 +165,15 @@ describe('resolveGlobalConfigPath', () => {
 
 describe('writeConfig', () => {
   test('writes config to file successfully', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const config = {
       provider: {
         openrouter: {
-          models: {}
-        }
-      }
+          models: {},
+        },
+      },
     };
 
     const result = await writeConfig(config, configPath);
@@ -179,7 +185,7 @@ describe('writeConfig', () => {
   });
 
   test('preserves existing structure (no overwrites)', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const existingConfig = {
@@ -189,11 +195,11 @@ describe('writeConfig', () => {
             'existing-model': {
               name: 'Existing Model',
               limit: { context: 128000 },
-            }
-          }
-        }
+            },
+          },
+        },
       },
-      customField: 'preserved'
+      customField: 'preserved',
     };
 
     await fs.writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
@@ -204,10 +210,10 @@ describe('writeConfig', () => {
           models: {
             'new-model': {
               name: 'New Model',
-            }
-          }
-        }
-      }
+            },
+          },
+        },
+      },
     };
 
     await writeConfig(newConfig, configPath);
@@ -229,7 +235,9 @@ describe('writeConfig', () => {
 });
 
 // Helper to create mock model
-function createMockModelWithDefaults(overrides: Partial<OpenRouterModel> = {}): OpenRouterModel {
+function createMockModelWithDefaults(
+  overrides: Partial<OpenRouterModel> = {},
+): OpenRouterModel {
   return {
     id: 'test-model-new',
     canonical_slug: 'test-model-new',
@@ -256,7 +264,13 @@ function createMockModelWithDefaults(overrides: Partial<OpenRouterModel> = {}): 
       is_moderated: true,
     },
     per_request_limits: null,
-    supported_parameters: ['temperature', 'max_tokens', 'top_p', 'tools', 'stop'],
+    supported_parameters: [
+      'temperature',
+      'max_tokens',
+      'top_p',
+      'tools',
+      'stop',
+    ],
     default_parameters: {
       temperature: 0.7,
       top_p: null,
@@ -276,9 +290,9 @@ describe('convertToConfigModel', () => {
     const entry = convertToConfigModel(model);
 
     expect(entry.cost).toBeDefined();
-    expect(entry.cost!.input).toBe(0.001);
-    expect(entry.cost!.output).toBe(0.002);
-    expect(entry.cost!.cache_read).toBe(0.0001);
+    expect(entry.cost?.input).toBe(0.001);
+    expect(entry.cost?.output).toBe(0.002);
+    expect(entry.cost?.cache_read).toBe(0.0001);
   });
 
   test('produces limit fields from context_length and top_provider', () => {
@@ -286,8 +300,8 @@ describe('convertToConfigModel', () => {
     const entry = convertToConfigModel(model);
 
     expect(entry.limit).toBeDefined();
-    expect(entry.limit!.context).toBe(8192);
-    expect(entry.limit!.output).toBe(4096);
+    expect(entry.limit?.context).toBe(8192);
+    expect(entry.limit?.output).toBe(4096);
   });
 
   test('sets temperature flag from supported_parameters', () => {
@@ -412,19 +426,34 @@ describe('convertToConfigModel', () => {
 
 describe('updateModels', () => {
   test('adds new models only', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
-    await fs.writeFile(configPath, JSON.stringify({
-      provider: { openrouter: { models: {} } }
-    }), 'utf-8');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        provider: { openrouter: { models: {} } },
+      }),
+      'utf-8',
+    );
 
     const mockModels = [
-      createMockModelWithDefaults({ id: 'model-1', name: 'Model 1', context_length: 128000 }),
-      createMockModelWithDefaults({ id: 'model-2', name: 'Model 2', context_length: 64000 }),
+      createMockModelWithDefaults({
+        id: 'model-1',
+        name: 'Model 1',
+        context_length: 128000,
+      }),
+      createMockModelWithDefaults({
+        id: 'model-2',
+        name: 'Model 2',
+        context_length: 64000,
+      }),
     ];
 
-    const result = await updateModels(mockModels as OpenRouterModel[], configPath);
+    const result = await updateModels(
+      mockModels as OpenRouterModel[],
+      configPath,
+    );
 
     expect(result.added).toBe(2);
     expect(result.skipped).toBe(0);
@@ -440,7 +469,7 @@ describe('updateModels', () => {
   });
 
   test('does not overwrite existing models', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const existingConfig = {
@@ -450,20 +479,26 @@ describe('updateModels', () => {
             'existing-model': {
               name: 'Existing Model',
               limit: { context: 999999 },
-            }
-          }
-        }
-      }
+            },
+          },
+        },
+      },
     };
 
     await fs.writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
 
     const mockModels = [
-      createMockModelWithDefaults({ id: 'existing-model', name: 'Updated Name (should not appear)' }),
+      createMockModelWithDefaults({
+        id: 'existing-model',
+        name: 'Updated Name (should not appear)',
+      }),
       createMockModelWithDefaults({ id: 'new-model', name: 'New Model' }),
     ];
 
-    const result = await updateModels(mockModels as OpenRouterModel[], configPath);
+    const result = await updateModels(
+      mockModels as OpenRouterModel[],
+      configPath,
+    );
 
     expect(result.added).toBe(1);
     expect(result.skipped).toBe(1);
@@ -471,25 +506,34 @@ describe('updateModels', () => {
     const content = await fs.readFile(configPath, 'utf-8');
     const parsed = JSON.parse(content);
 
-    expect(parsed.provider.openrouter.models['existing-model'].limit.context).toBe(999999);
-    expect(parsed.provider.openrouter.models['existing-model'].name).toBe('Existing Model');
+    expect(
+      parsed.provider.openrouter.models['existing-model'].limit.context,
+    ).toBe(999999);
+    expect(parsed.provider.openrouter.models['existing-model'].name).toBe(
+      'Existing Model',
+    );
 
     expect(parsed.provider.openrouter.models['new-model']).toBeDefined();
   });
 
   test('skips models without ID', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
-    await fs.writeFile(configPath, JSON.stringify({
-      provider: { openrouter: { models: {} } }
-    }), 'utf-8');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        provider: { openrouter: { models: {} } },
+      }),
+      'utf-8',
+    );
 
-    const mockModels = [
-      createMockModelWithDefaults({ id: '' }),
-    ];
+    const mockModels = [createMockModelWithDefaults({ id: '' })];
 
-    const result = await updateModels(mockModels as OpenRouterModel[], configPath);
+    const result = await updateModels(
+      mockModels as OpenRouterModel[],
+      configPath,
+    );
 
     expect(result.added).toBe(0);
     expect(result.skipped).toBe(1);
@@ -497,7 +541,7 @@ describe('updateModels', () => {
   });
 
   test('handles missing config gracefully', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     try {
@@ -510,12 +554,15 @@ describe('updateModels', () => {
       createMockModelWithDefaults({ id: 'test-model', name: 'Test' }),
     ];
 
-    const result = await updateModels(mockModels as OpenRouterModel[], configPath);
+    const result = await updateModels(
+      mockModels as OpenRouterModel[],
+      configPath,
+    );
     expect(result.added).toBe(1);
   });
 
   test('removes models no longer in API response', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const existingConfig = {
@@ -525,9 +572,9 @@ describe('updateModels', () => {
             'active-model': { name: 'Active' },
             'stale-model-1': { name: 'Stale 1' },
             'stale-model-2': { name: 'Stale 2' },
-          }
-        }
-      }
+          },
+        },
+      },
     };
 
     await fs.writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
@@ -537,7 +584,10 @@ describe('updateModels', () => {
       createMockModelWithDefaults({ id: 'active-model', name: 'Active' }),
     ];
 
-    const result = await updateModels(mockModels as OpenRouterModel[], configPath);
+    const result = await updateModels(
+      mockModels as OpenRouterModel[],
+      configPath,
+    );
 
     expect(result.removed).toBe(2);
     expect(result.skipped).toBe(1);
@@ -553,7 +603,7 @@ describe('updateModels', () => {
   });
 
   test('removes all models when API returns completely new set', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const existingConfig = {
@@ -561,9 +611,9 @@ describe('updateModels', () => {
         openrouter: {
           models: {
             'old-model': { name: 'Old' },
-          }
-        }
-      }
+          },
+        },
+      },
     };
 
     await fs.writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
@@ -572,7 +622,10 @@ describe('updateModels', () => {
       createMockModelWithDefaults({ id: 'brand-new-model', name: 'Brand New' }),
     ];
 
-    const result = await updateModels(mockModels as OpenRouterModel[], configPath);
+    const result = await updateModels(
+      mockModels as OpenRouterModel[],
+      configPath,
+    );
 
     expect(result.removed).toBe(1);
     expect(result.added).toBe(1);
@@ -588,8 +641,17 @@ describe('updateModels', () => {
 
 describe('schema validation', () => {
   const VALID_FIELDS = new Set([
-    'name', 'cost', 'limit', 'modalities', 'temperature',
-    'tool_call', 'reasoning', 'attachment', 'options', 'variants', 'status',
+    'name',
+    'cost',
+    'limit',
+    'modalities',
+    'temperature',
+    'tool_call',
+    'reasoning',
+    'attachment',
+    'options',
+    'variants',
+    'status',
   ]);
 
   test('convertToConfigModel only produces valid OpenCode schema fields', () => {
@@ -613,17 +675,17 @@ describe('schema validation', () => {
 
 describe('deepMerge logic (via writeConfig)', () => {
   test('merges nested objects without overwriting', async () => {
-    const fs = await import('fs/promises');
+    const fs = await import('node:fs/promises');
     const configPath = testConfigPath();
 
     const existing = {
       level1: {
         level2: {
           existingValue: 'preserved',
-          anotherValue: 'also preserved'
-        }
+          anotherValue: 'also preserved',
+        },
       },
-      topLevel: 'keep this'
+      topLevel: 'keep this',
     };
 
     await fs.writeFile(configPath, JSON.stringify(existing), 'utf-8');
@@ -631,10 +693,10 @@ describe('deepMerge logic (via writeConfig)', () => {
     const newConfig = {
       level1: {
         level2: {
-          newValue: 'added'
-        }
+          newValue: 'added',
+        },
       },
-      newTopLevel: 'brand new'
+      newTopLevel: 'brand new',
     };
 
     await writeConfig(newConfig, configPath);

@@ -1,9 +1,11 @@
-import { describe, test, expect, mock, beforeEach, afterEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { fetchModels } from '../src/api';
-import type { OpenRouterModel, OpenRouterResponse, FetchResult } from '../src/types';
+import type { OpenRouterModel, OpenRouterResponse } from '../src/types';
 
 // Helper to create valid mock model
-function createMockModel(overrides: Partial<OpenRouterModel> = {}): OpenRouterModel {
+function createMockModel(
+  overrides: Partial<OpenRouterModel> = {},
+): OpenRouterModel {
   return {
     id: 'test-model-1',
     canonical_slug: 'test-model-1',
@@ -45,7 +47,9 @@ function createMockModel(overrides: Partial<OpenRouterModel> = {}): OpenRouterMo
 }
 
 // Helper to create valid API response
-function createMockResponse(models: OpenRouterModel[] = [createMockModel()]): OpenRouterResponse {
+function createMockResponse(
+  models: OpenRouterModel[] = [createMockModel()],
+): OpenRouterResponse {
   return { data: models };
 }
 
@@ -62,8 +66,11 @@ describe('fetchModels', () => {
   });
 
   test('returns FetchResult with data on successful API call', async () => {
-    const mockModels = [createMockModel({ id: 'model-1', name: 'Model One' }), createMockModel({ id: 'model-2', name: 'Model Two' })];
-    
+    const mockModels = [
+      createMockModel({ id: 'model-1', name: 'Model One' }),
+      createMockModel({ id: 'model-2', name: 'Model Two' }),
+    ];
+
     // Mock successful fetch response
     global.fetch = mock(async () => {
       return {
@@ -175,7 +182,7 @@ describe('fetchModels', () => {
     // Mock response with invalid model (missing required fields)
     const invalidModel = createMockModel();
     delete (invalidModel as Partial<OpenRouterModel>).context_length;
-    
+
     global.fetch = mock(async () => {
       return {
         ok: true,
