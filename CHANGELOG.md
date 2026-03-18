@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.8.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.7.0...v1.8.0) (2026-03-18)
+
+
+### Features
+
+* add biome linter and formatter ([#19](https://github.com/tbui17/opencode-openrouter-sync/issues/19)) ([76a8c07](https://github.com/tbui17/opencode-openrouter-sync/commit/76a8c07cf4f711669897705e7ab01d6ce3834a92))
+* add jsconfig.json for improved IDE support ([fc0d81a](https://github.com/tbui17/opencode-openrouter-sync/commit/fc0d81a97982f2baf451cf47457f5a26aeed57dd))
+
+
+### Bug Fixes
+
+* migrate release-please action to googleapis org ([aba5c6c](https://github.com/tbui17/opencode-openrouter-sync/commit/aba5c6c8942efe05e96b61943cf056d6c5f2a719))
+
 ## [1.7.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.6.0...v1.7.0) (2026-03-17)
 
 
