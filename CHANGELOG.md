@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.6.0...v1.7.0) (2026-03-17)
+
+
+### Features
+
+* add structured logging throughout plugin ([#16](https://github.com/tbui17/opencode-openrouter-sync/issues/16)) ([ee72f38](https://github.com/tbui17/opencode-openrouter-sync/commit/ee72f38146bce77236415a6ab6c570e98ac01112))
+
 ## [1.6.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.5.1...v1.6.0) (2026-03-17)
 
 
