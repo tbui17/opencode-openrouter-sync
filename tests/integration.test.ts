@@ -1204,6 +1204,13 @@ describe('performSync against real profile', () => {
 
     // Back up the real config
     originalContent = await readFile(realConfigPath, 'utf-8');
+
+    // Reset to empty models so the test starts from a clean state
+    await writeFile(
+      realConfigPath,
+      JSON.stringify({ provider: { openrouter: { models: {} } } }, null, 2),
+      'utf-8',
+    );
   });
 
   afterEach(async () => {
@@ -1222,7 +1229,7 @@ describe('performSync against real profile', () => {
       const models = result.data;
       expect(models.length).toBeGreaterThan(100);
 
-      // Write to the real config
+      // Write to the real config (starts empty from beforeEach)
       const updateResult = await updateModels(models, realConfigPath);
       console.log('updateModels result:', updateResult);
       expect(updateResult.added).toBeGreaterThan(0);
@@ -1352,6 +1359,13 @@ describe('opencode CLI model list', () => {
 
     // Back up the real config
     originalContent = await readFile(realConfigPath, 'utf-8');
+
+    // Reset to empty models so updateModels starts from a clean state
+    await writeFile(
+      realConfigPath,
+      JSON.stringify({ provider: { openrouter: { models: {} } } }, null, 2),
+      'utf-8',
+    );
 
     // Fetch models from the live API and write them to the real config
     const result = await fetchModels();
