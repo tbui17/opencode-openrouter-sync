@@ -33,7 +33,7 @@ export function stripJsonComments(text: string): string {
           state = 'in-block-comment';
           result.push(' ', ' ');
           i += 2;
-        } else if (next !== undefined && ch !== undefined) {
+        } else if (ch !== undefined) {
           result.push(ch);
           i++;
         }
