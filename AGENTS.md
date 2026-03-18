@@ -185,7 +185,7 @@ Push to main
 
 ## Release Please Workflow (`release-please.yml`)
 
-- Uses `google-github-actions/release-please-action@v4` with `release-type: node`.
+- Uses `googleapis/release-please-action@v4` with `release-type: node`.
 - Requires permissions: `contents: write`, `pull-requests: write`, `id-token: write`.
 - The `publish` job only runs when `release_created` is true (i.e., a release PR was merged).
 - Publish uses Node.js (not Bun) with `npm ci && npm run build && npm publish --access public`.
