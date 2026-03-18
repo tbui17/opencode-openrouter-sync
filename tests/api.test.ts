@@ -1,9 +1,11 @@
-import { describe, test, expect, mock, beforeEach, afterEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { fetchModels } from '../src/api';
-import type { OpenRouterModel, OpenRouterResponse, FetchResult } from '../src/types';
+import type { OpenRouterModel, OpenRouterResponse } from '../src/types';
 
 // Helper to create valid mock model
-function createMockModel(overrides: Partial<OpenRouterModel> = {}): OpenRouterModel {
+function createMockModel(
+  overrides: Partial<OpenRouterModel> = {},
+): OpenRouterModel {
   return {
     id: 'test-model-1',
     canonical_slug: 'test-model-1',
@@ -45,7 +47,9 @@ function createMockModel(overrides: Partial<OpenRouterModel> = {}): OpenRouterMo
 }
 
 // Helper to create valid API response
-function createMockResponse(models: OpenRouterModel[] = [createMockModel()]): OpenRouterResponse {
+function createMockResponse(
+  models: OpenRouterModel[] = [createMockModel()],
+): OpenRouterResponse {
   return { data: models };
 }
 
@@ -62,34 +66,38 @@ describe('fetchModels', () => {
   });
 
   test('returns FetchResult with data on successful API call', async () => {
-    const mockModels = [createMockModel({ id: 'model-1', name: 'Model One' }), createMockModel({ id: 'model-2', name: 'Model Two' })];
-    
+    const mockModels = [
+      createMockModel({ id: 'model-1', name: 'Model One' }),
+      createMockModel({ id: 'model-2', name: 'Model Two' }),
+    ];
+
     // Mock successful fetch response
     global.fetch = mock(async () => {
       return {
         ok: true,
         json: async () => createMockResponse(mockModels),
       } as Response;
-    });
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('data' in result).toBe(true);
-    expect(result.data).toHaveLength(2);
-    expect(result.data[0].id).toBe('model-1');
-    expect(result.data[1].id).toBe('model-2');
+    const r = result as { data: OpenRouterModel[] };
+    expect(r.data).toHaveLength(2);
+    expect(r.data[0]!.id).toBe('model-1');
+    expect(r.data[1]!.id).toBe('model-2');
   });
 
   test('returns FetchResult with error on network error', async () => {
     // Mock network error
     global.fetch = mock(async () => {
       throw new Error('Network connection failed');
-    });
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('error' in result).toBe(true);
-    expect(result.error.type).toBe('network');
+    expect((result as any).error.type).toBe('network');
   });
 
   test('returns FetchResult with error on timeout (AbortError)', async () => {
@@ -98,12 +106,12 @@ describe('fetchModels', () => {
       const error = new Error('Request timed out');
       error.name = 'AbortError';
       throw error;
-    });
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('error' in result).toBe(true);
-    expect(result.error.type).toBe('timeout');
+    expect((result as any).error.type).toBe('timeout');
   });
 
   test('returns FetchResult with error on malformed JSON response', async () => {
@@ -114,13 +122,13 @@ describe('fetchModels', () => {
         json: async () => {
           throw new SyntaxError('Unexpected token in JSON');
         },
-      } as Response;
-    });
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('error' in result).toBe(true);
-    expect(result.error.type).toBe('parse');
+    expect((result as any).error.type).toBe('parse');
   });
 
   test('returns FetchResult with error when response lacks data array', async () => {
@@ -130,12 +138,12 @@ describe('fetchModels', () => {
         ok: true,
         json: async () => ({ error: 'Some error' }),
       } as Response;
-    });
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('error' in result).toBe(true);
-    expect(result.error.type).toBe('validation');
+    expect((result as any).error.type).toBe('validation');
   });
 
   test('returns FetchResult with error when data array is empty', async () => {
@@ -145,12 +153,12 @@ describe('fetchModels', () => {
         ok: true,
         json: async () => createMockResponse([]),
       } as Response;
-    });
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('error' in result).toBe(true);
-    expect(result.error.type).toBe('empty');
+    expect((result as any).error.type).toBe('empty');
   });
 
   test('returns FetchResult with error when HTTP status is not ok', async () => {
@@ -162,31 +170,31 @@ describe('fetchModels', () => {
         statusText: 'Internal Server Error',
         text: async () => 'Internal Server Error',
       } as Response;
-    });
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('error' in result).toBe(true);
-    expect(result.error.type).toBe('http');
-    expect(result.error.status).toBe(500);
+    expect((result as any).error.type).toBe('http');
+    expect((result as any).error.status).toBe(500);
   });
 
   test('returns FetchResult with error when model missing required fields', async () => {
     // Mock response with invalid model (missing required fields)
     const invalidModel = createMockModel();
     delete (invalidModel as Partial<OpenRouterModel>).context_length;
-    
+
     global.fetch = mock(async () => {
       return {
         ok: true,
         json: async () => createMockResponse([invalidModel]),
       } as Response;
-    });
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('error' in result).toBe(true);
-    expect(result.error.type).toBe('validation');
+    expect((result as any).error.type).toBe('validation');
   });
 
   test('returns FetchResult with error on non-object response', async () => {
@@ -196,11 +204,11 @@ describe('fetchModels', () => {
         ok: true,
         json: async () => 'not an object',
       } as Response;
-    });
+    }) as unknown as typeof fetch;
 
     const result = await fetchModels();
 
     expect('error' in result).toBe(true);
-    expect(result.error.type).toBe('validation');
+    expect((result as any).error.type).toBe('validation');
   });
 });

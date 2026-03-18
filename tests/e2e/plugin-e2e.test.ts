@@ -16,35 +16,35 @@ import {
   describe,
   expect,
   it,
-} from "bun:test";
-import { mkdir, readFile, rm, writeFile } from "fs/promises";
-import { tmpdir } from "os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "url";
+} from 'bun:test';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   type MockApiServer,
   startMockApiServer,
   stopMockApiServer,
-} from "./helpers/mock-api.js";
+} from './helpers/mock-api.js';
 import {
   isOpenCodeAvailable,
   type OpenCodeServer,
   startOpenCodeServer,
   stopOpenCodeServer,
-} from "./helpers/server.js";
+} from './helpers/server.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..");
-const LOCAL_PLUGIN_PATH = join(PROJECT_ROOT, "dist", "index.js");
+const PROJECT_ROOT = join(__dirname, '..', '..');
+const LOCAL_PLUGIN_PATH = join(PROJECT_ROOT, 'dist', 'index.js');
 
 const TEST_TIMEOUT = 30000;
 const SYNC_POLL_TIMEOUT = 15000;
 const SYNC_POLL_INTERVAL = 500;
 
 // Shared E2E test state (module-level for access across describe blocks)
-let e2eSkipReason = "";
+let e2eSkipReason = '';
 let e2eMockApi: MockApiServer | null = null;
-let e2eMockApiUrl = "";
+let e2eMockApiUrl = '';
 
 /**
  * Check if the E2E environment is properly configured.
@@ -54,14 +54,14 @@ let e2eMockApiUrl = "";
 async function checkE2EReadiness(): Promise<string> {
   const available = await isOpenCodeAvailable();
   if (!available) {
-    return "opencode CLI not available";
+    return 'opencode CLI not available';
   }
 
   // E2E tests require OPENROUTER_API_URL env var support which is in local source
   // but not yet in the published npm package until v1.5.0.
   // Skip tests until the version is published.
   // TODO: After publishing v1.5.0, remove this skip logic.
-  return "E2E tests require v1.5.0+ (publish first)";
+  return 'E2E tests require v1.5.0+ (publish first)';
 }
 
 async function initE2E(): Promise<void> {
@@ -84,7 +84,7 @@ async function cleanupE2E(): Promise<void> {
   }
 }
 
-describe("E2E: Plugin Happy Path", () => {
+describe('E2E: Plugin Happy Path', () => {
   let server: OpenCodeServer | null = null;
   let tempConfigDir: string;
   let tempCacheDir: string;
@@ -122,9 +122,9 @@ describe("E2E: Plugin Happy Path", () => {
     };
 
     await writeFile(
-      join(tempConfigDir, "opencode.json"),
+      join(tempConfigDir, 'opencode.json'),
       JSON.stringify(initialConfig, null, 2),
-      "utf-8",
+      'utf-8',
     );
   });
 
@@ -142,7 +142,7 @@ describe("E2E: Plugin Happy Path", () => {
   });
 
   it(
-    "should load plugin and register on server start",
+    'should load plugin and register on server start',
     async () => {
       if (e2eSkipReason) {
         console.log(`Skipping: ${e2eSkipReason}`);
@@ -156,9 +156,9 @@ describe("E2E: Plugin Happy Path", () => {
       });
 
       expect(server).toBeDefined();
-      expect(server!.url).toMatch(/^http:\/\/localhost:\d+$/);
+      expect(server?.url).toMatch(/^http:\/\/localhost:\d+$/);
 
-      const healthResponse = await fetch(`${server!.url}/global/health`);
+      const healthResponse = await fetch(`${server?.url}/global/health`);
       expect(healthResponse.ok).toBe(true);
 
       const healthData = (await healthResponse.json()) as { healthy?: boolean };
@@ -168,7 +168,7 @@ describe("E2E: Plugin Happy Path", () => {
   );
 
   it(
-    "should trigger sync on session creation",
+    'should trigger sync on session creation',
     async () => {
       if (e2eSkipReason) {
         console.log(`Skipping: ${e2eSkipReason}`);
@@ -181,15 +181,15 @@ describe("E2E: Plugin Happy Path", () => {
         env: { OPENROUTER_API_URL: e2eMockApiUrl },
       });
 
-      const sessionResponse = await fetch(`${server!.url}/api/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const sessionResponse = await fetch(`${server?.url}/api/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
 
       expect(sessionResponse.status).toBeLessThan(500);
 
-      const configPath = join(tempConfigDir, "opencode.json");
+      const configPath = join(tempConfigDir, 'opencode.json');
       const syncCompleted = await pollForSyncCompletion(configPath);
 
       expect(syncCompleted).toBe(true);
@@ -198,7 +198,7 @@ describe("E2E: Plugin Happy Path", () => {
   );
 
   it(
-    "should update config with models after sync",
+    'should update config with models after sync',
     async () => {
       if (e2eSkipReason) {
         console.log(`Skipping: ${e2eSkipReason}`);
@@ -211,16 +211,16 @@ describe("E2E: Plugin Happy Path", () => {
         env: { OPENROUTER_API_URL: e2eMockApiUrl },
       });
 
-      await fetch(`${server!.url}/api/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`${server?.url}/api/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
 
-      const configPath = join(tempConfigDir, "opencode.json");
+      const configPath = join(tempConfigDir, 'opencode.json');
       await pollForSyncCompletion(configPath);
 
-      const configContent = await readFile(configPath, "utf-8");
+      const configContent = await readFile(configPath, 'utf-8');
       const config = JSON.parse(configContent);
 
       expect(config.provider).toBeDefined();
@@ -244,7 +244,7 @@ describe("E2E: Plugin Happy Path", () => {
   );
 
   it(
-    "should write cache after sync",
+    'should write cache after sync',
     async () => {
       if (e2eSkipReason) {
         console.log(`Skipping: ${e2eSkipReason}`);
@@ -257,16 +257,16 @@ describe("E2E: Plugin Happy Path", () => {
         env: { OPENROUTER_API_URL: e2eMockApiUrl },
       });
 
-      await fetch(`${server!.url}/api/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`${server?.url}/api/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
 
-      const configPath = join(tempConfigDir, "opencode.json");
+      const configPath = join(tempConfigDir, 'opencode.json');
       await pollForSyncCompletion(configPath);
 
-      const configContent = await readFile(configPath, "utf-8");
+      const configContent = await readFile(configPath, 'utf-8');
       const config = JSON.parse(configContent);
       const modelCount = Object.keys(
         config.provider?.openrouter?.models || {},
@@ -278,22 +278,22 @@ describe("E2E: Plugin Happy Path", () => {
   );
 
   it(
-    "should preserve existing models during sync",
+    'should preserve existing models during sync',
     async () => {
       if (e2eSkipReason) {
         console.log(`Skipping: ${e2eSkipReason}`);
         return;
       }
 
-      const existingModelId = "mock/test-gpt-4";
+      const existingModelId = 'mock/test-gpt-4';
       const existingConfig = {
         plugin: [LOCAL_PLUGIN_PATH],
         provider: {
           openrouter: {
             models: {
               [existingModelId]: {
-                name: "Custom GPT-4 Name",
-                customField: "preserved-value",
+                name: 'Custom GPT-4 Name',
+                customField: 'preserved-value',
                 cost: { input: 0.002, output: 0.008 },
                 limit: { context: 8192, output: 4096 },
               },
@@ -303,9 +303,9 @@ describe("E2E: Plugin Happy Path", () => {
       };
 
       await writeFile(
-        join(tempConfigDir, "opencode.json"),
+        join(tempConfigDir, 'opencode.json'),
         JSON.stringify(existingConfig, null, 2),
-        "utf-8",
+        'utf-8',
       );
 
       server = await startOpenCodeServer(tempConfigDir, {
@@ -314,22 +314,22 @@ describe("E2E: Plugin Happy Path", () => {
         env: { OPENROUTER_API_URL: e2eMockApiUrl },
       });
 
-      await fetch(`${server!.url}/api/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`${server?.url}/api/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
 
-      const configPath = join(tempConfigDir, "opencode.json");
+      const configPath = join(tempConfigDir, 'opencode.json');
       await pollForSyncCompletion(configPath);
 
-      const configContent = await readFile(configPath, "utf-8");
+      const configContent = await readFile(configPath, 'utf-8');
       const config = JSON.parse(configContent);
 
       const existingModel = config.provider.openrouter.models[existingModelId];
       expect(existingModel).toBeDefined();
-      expect(existingModel.customField).toBe("preserved-value");
-      expect(existingModel.name).toBe("Custom GPT-4 Name");
+      expect(existingModel.customField).toBe('preserved-value');
+      expect(existingModel.name).toBe('Custom GPT-4 Name');
     },
     TEST_TIMEOUT,
   );
@@ -340,7 +340,7 @@ async function pollForSyncCompletion(configPath: string): Promise<boolean> {
 
   while (Date.now() - startTime < SYNC_POLL_TIMEOUT) {
     try {
-      const content = await readFile(configPath, "utf-8");
+      const content = await readFile(configPath, 'utf-8');
       const config = JSON.parse(content);
 
       const models = config.provider?.openrouter?.models;
@@ -362,7 +362,7 @@ async function pollForSyncCompletion(configPath: string): Promise<boolean> {
  */
 async function isConfigValid(configPath: string): Promise<boolean> {
   try {
-    const content = await readFile(configPath, "utf-8");
+    const content = await readFile(configPath, 'utf-8');
     JSON.parse(content);
     return true;
   } catch {
@@ -373,7 +373,7 @@ async function isConfigValid(configPath: string): Promise<boolean> {
 /**
  * E2E tests for failure scenarios - error handling verification
  */
-describe("E2E: Plugin Failure Scenarios", () => {
+describe('E2E: Plugin Failure Scenarios', () => {
   let mockApi: MockApiServer | null = null;
   let server: OpenCodeServer | null = null;
   let tempConfigDir: string;
@@ -404,7 +404,7 @@ describe("E2E: Plugin Failure Scenarios", () => {
   });
 
   it(
-    "should handle HTTP 500 error gracefully without crashing",
+    'should handle HTTP 500 error gracefully without crashing',
     async () => {
       if (e2eSkipReason) {
         console.log(`Skipping: ${e2eSkipReason}`);
@@ -421,7 +421,7 @@ describe("E2E: Plugin Failure Scenarios", () => {
 
       mockApi = await startMockApiServer(0, {
         statusCode: 500,
-        responseBody: { error: "Internal Server Error" },
+        responseBody: { error: 'Internal Server Error' },
       });
 
       const e2eMockApiUrl = `http://localhost:${mockApi.port}/api/v1/models`;
@@ -435,9 +435,9 @@ describe("E2E: Plugin Failure Scenarios", () => {
       };
 
       await writeFile(
-        join(tempConfigDir, "opencode.json"),
+        join(tempConfigDir, 'opencode.json'),
         JSON.stringify(initialConfig, null, 2),
-        "utf-8",
+        'utf-8',
       );
 
       server = await startOpenCodeServer(tempConfigDir, {
@@ -446,22 +446,22 @@ describe("E2E: Plugin Failure Scenarios", () => {
         env: { OPENROUTER_API_URL: e2eMockApiUrl },
       });
 
-      await fetch(`${server!.url}/api/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`${server?.url}/api/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const healthResponse = await fetch(`${server!.url}/global/health`);
+      const healthResponse = await fetch(`${server?.url}/global/health`);
       expect(healthResponse.ok).toBe(true);
 
-      const configPath = join(tempConfigDir, "opencode.json");
+      const configPath = join(tempConfigDir, 'opencode.json');
       const configValid = await isConfigValid(configPath);
       expect(configValid).toBe(true);
 
-      const configContent = await readFile(configPath, "utf-8");
+      const configContent = await readFile(configPath, 'utf-8');
       const config = JSON.parse(configContent);
       expect(config.provider).toBeDefined();
       expect(config.provider.openrouter).toBeDefined();
@@ -469,7 +469,7 @@ describe("E2E: Plugin Failure Scenarios", () => {
     TEST_TIMEOUT,
   );
 
-  it("should handle network timeout gracefully without crashing", async () => {
+  it('should handle network timeout gracefully without crashing', async () => {
     if (e2eSkipReason) {
       console.log(`Skipping: ${e2eSkipReason}`);
       return;
@@ -501,9 +501,9 @@ describe("E2E: Plugin Failure Scenarios", () => {
     };
 
     await writeFile(
-      join(tempConfigDir, "opencode.json"),
+      join(tempConfigDir, 'opencode.json'),
       JSON.stringify(initialConfig, null, 2),
-      "utf-8",
+      'utf-8',
     );
 
     server = await startOpenCodeServer(tempConfigDir, {
@@ -511,24 +511,24 @@ describe("E2E: Plugin Failure Scenarios", () => {
       healthCheckTimeout: TEST_TIMEOUT,
     });
 
-    await fetch(`${server!.url}/api/sessions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    await fetch(`${server?.url}/api/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     });
 
     await new Promise((resolve) => setTimeout(resolve, 35000));
 
-    const healthResponse = await fetch(`${server!.url}/global/health`);
+    const healthResponse = await fetch(`${server?.url}/global/health`);
     expect(healthResponse.ok).toBe(true);
 
-    const configPath = join(tempConfigDir, "opencode.json");
+    const configPath = join(tempConfigDir, 'opencode.json');
     const configValid = await isConfigValid(configPath);
     expect(configValid).toBe(true);
   }, 60000);
 
   it(
-    "should handle malformed JSON response gracefully without crashing",
+    'should handle malformed JSON response gracefully without crashing',
     async () => {
       if (e2eSkipReason) {
         console.log(`Skipping: ${e2eSkipReason}`);
@@ -545,7 +545,7 @@ describe("E2E: Plugin Failure Scenarios", () => {
 
       mockApi = await startMockApiServer(0, {
         statusCode: 200,
-        responseBody: { malformedData: "not the expected structure" },
+        responseBody: { malformedData: 'not the expected structure' },
       });
 
       const e2eMockApiUrl = `http://localhost:${mockApi.port}/api/v1/models`;
@@ -559,9 +559,9 @@ describe("E2E: Plugin Failure Scenarios", () => {
       };
 
       await writeFile(
-        join(tempConfigDir, "opencode.json"),
+        join(tempConfigDir, 'opencode.json'),
         JSON.stringify(initialConfig, null, 2),
-        "utf-8",
+        'utf-8',
       );
 
       server = await startOpenCodeServer(tempConfigDir, {
@@ -570,18 +570,18 @@ describe("E2E: Plugin Failure Scenarios", () => {
         env: { OPENROUTER_API_URL: e2eMockApiUrl },
       });
 
-      await fetch(`${server!.url}/api/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`${server?.url}/api/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const healthResponse = await fetch(`${server!.url}/global/health`);
+      const healthResponse = await fetch(`${server?.url}/global/health`);
       expect(healthResponse.ok).toBe(true);
 
-      const configPath = join(tempConfigDir, "opencode.json");
+      const configPath = join(tempConfigDir, 'opencode.json');
       const configValid = await isConfigValid(configPath);
       expect(configValid).toBe(true);
     },
@@ -589,7 +589,7 @@ describe("E2E: Plugin Failure Scenarios", () => {
   );
 
   it(
-    "should handle invalid response structure gracefully without crashing",
+    'should handle invalid response structure gracefully without crashing',
     async () => {
       if (e2eSkipReason) {
         console.log(`Skipping: ${e2eSkipReason}`);
@@ -606,7 +606,7 @@ describe("E2E: Plugin Failure Scenarios", () => {
 
       mockApi = await startMockApiServer(0, {
         statusCode: 200,
-        responseBody: { data: "not an array" },
+        responseBody: { data: 'not an array' },
       });
 
       const e2eMockApiUrl = `http://localhost:${mockApi.port}/api/v1/models`;
@@ -620,9 +620,9 @@ describe("E2E: Plugin Failure Scenarios", () => {
       };
 
       await writeFile(
-        join(tempConfigDir, "opencode.json"),
+        join(tempConfigDir, 'opencode.json'),
         JSON.stringify(initialConfig, null, 2),
-        "utf-8",
+        'utf-8',
       );
 
       server = await startOpenCodeServer(tempConfigDir, {
@@ -631,22 +631,22 @@ describe("E2E: Plugin Failure Scenarios", () => {
         env: { OPENROUTER_API_URL: e2eMockApiUrl },
       });
 
-      await fetch(`${server!.url}/api/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`${server?.url}/api/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const healthResponse = await fetch(`${server!.url}/global/health`);
+      const healthResponse = await fetch(`${server?.url}/global/health`);
       expect(healthResponse.ok).toBe(true);
 
-      const configPath = join(tempConfigDir, "opencode.json");
+      const configPath = join(tempConfigDir, 'opencode.json');
       const configValid = await isConfigValid(configPath);
       expect(configValid).toBe(true);
 
-      const configContent = await readFile(configPath, "utf-8");
+      const configContent = await readFile(configPath, 'utf-8');
       const config = JSON.parse(configContent);
       expect(config.provider).toBeDefined();
       expect(config.provider.openrouter).toBeDefined();

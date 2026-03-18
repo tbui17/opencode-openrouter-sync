@@ -3,7 +3,7 @@
  * Fetches available models from OpenRouter's public API
  */
 
-import type { OpenRouterModel, OpenRouterResponse, FetchResult } from './types';
+import type { FetchResult, OpenRouterModel, OpenRouterResponse } from './types';
 
 const DEFAULT_API_ENDPOINT = 'https://openrouter.ai/api/v1/models';
 const DEFAULT_TIMEOUT_MS = 30000;
@@ -29,7 +29,9 @@ function getApiEndpoint(options?: FetchModelsOptions): string {
   return process.env.OPENROUTER_API_URL ?? DEFAULT_API_ENDPOINT;
 }
 
-export async function fetchModels(options: FetchModelsOptions = {}): Promise<FetchResult> {
+export async function fetchModels(
+  options: FetchModelsOptions = {},
+): Promise<FetchResult> {
   const endpoint = getApiEndpoint(options);
   const log = options.log;
   const controller = new AbortController();
@@ -41,7 +43,7 @@ export async function fetchModels(options: FetchModelsOptions = {}): Promise<Fet
     const response = await fetch(endpoint, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       signal: controller.signal,
     });
@@ -49,7 +51,7 @@ export async function fetchModels(options: FetchModelsOptions = {}): Promise<Fet
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      let details: unknown = undefined;
+      let details: unknown;
       try {
         const body = await response.text();
         details = body;
@@ -189,7 +191,8 @@ function isValidOpenRouterModel(model: unknown): model is OpenRouterModel {
   if (typeof m.name !== 'string') return false;
   if (typeof m.created !== 'number') return false;
   if (typeof m.context_length !== 'number') return false;
-  if (typeof m.architecture !== 'object' || m.architecture === null) return false;
+  if (typeof m.architecture !== 'object' || m.architecture === null)
+    return false;
   if (typeof m.pricing !== 'object' || m.pricing === null) return false;
 
   return true;

@@ -33,22 +33,22 @@ export function stripJsonComments(text: string): string {
           state = 'in-block-comment';
           result.push(' ', ' ');
           i += 2;
-        } else {
+        } else if (ch !== undefined) {
           result.push(ch);
           i++;
         }
         break;
 
       case 'in-string':
-        if (ch === '\\') {
+        if (ch === '\\' && next !== undefined) {
           // Escaped character — push both and skip
-          result.push(ch, next ?? '');
+          result.push(ch, next);
           i += 2;
         } else if (ch === '"') {
           state = 'normal';
           result.push(ch);
           i++;
-        } else {
+        } else if (ch !== undefined) {
           result.push(ch);
           i++;
         }

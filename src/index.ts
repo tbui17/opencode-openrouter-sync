@@ -9,30 +9,30 @@
  *   import { syncModels } from 'opencode-openrouter-sync/sync'
  */
 
-import OpenRouterModelSyncPlugin from "./plugin.js";
+import OpenRouterModelSyncPlugin from './plugin.js';
 
 export type {
-	AppendPromptOptions,
-	ToastOptions,
-	ToastVariant,
-	TuiClient,
-} from "./tui.js";
+  AppendPromptOptions,
+  ToastOptions,
+  ToastVariant,
+  TuiClient,
+} from './tui.js';
 
 export type {
-	CacheData,
-	ConfigModelEntry,
-	DefaultParameters,
-	ModelArchitecture,
-	ModelFilter,
-	ModelPricing,
-	OpenCodeModelEntry,
-	OpenRouterModel,
-	OpenRouterResponse,
-	PluginContext,
-	PluginOptions,
-	SyncConfig,
-	SyncResult,
-	TopProvider,
-} from "./types.js";
+  CacheData,
+  ConfigModelEntry,
+  DefaultParameters,
+  ModelArchitecture,
+  ModelFilter,
+  ModelPricing,
+  OpenCodeModelEntry,
+  OpenRouterModel,
+  OpenRouterResponse,
+  PluginContext,
+  PluginOptions,
+  SyncConfig,
+  SyncResult,
+  TopProvider,
+} from './types.js';
 
 export default OpenRouterModelSyncPlugin;

@@ -4,30 +4,31 @@
  * Tests the full sync flow using actual functions (not re-implementations).
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { mkdir, writeFile, readFile, rm } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fetchModels } from '../src/api.js';
 import {
-  readCache,
-  writeCache,
-  isCacheValid,
   clearCache,
   getCachePath,
+  isCacheValid,
+  readCache,
+  writeCache,
 } from '../src/cache.js';
-import {
-  readConfig,
-  writeConfig,
-  updateModels,
-  getGlobalConfigPath,
-  convertToConfigModel,
-} from '../src/config.js';
-import { fetchModels } from '../src/api.js';
+import { readConfig, updateModels } from '../src/config.js';
 import { performSync, type SyncDeps } from '../src/plugin.js';
-import type { OpenRouterModel, CacheData, PluginContext } from '../src/types.js';
 import { schema } from '../src/schema.js';
+import type {
+  CacheData,
+  OpenRouterModel,
+  PluginContext,
+} from '../src/types.js';
 
-function createMockModel(id: string, overrides?: Partial<OpenRouterModel>): OpenRouterModel {
+function createMockModel(
+  id: string,
+  overrides?: Partial<OpenRouterModel>,
+): OpenRouterModel {
   return {
     id,
     canonical_slug: id,
@@ -75,7 +76,10 @@ describe('Integration Tests - Full Sync Flow', () => {
   let originalFetch: typeof globalThis.fetch;
 
   beforeEach(async () => {
-    tempDir = join(tmpdir(), `openrouter-sync-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    tempDir = join(
+      tmpdir(),
+      `openrouter-sync-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     cacheDir = join(tempDir, 'cache');
     configPath = join(tempDir, 'config', 'opencode.json');
 
@@ -96,7 +100,10 @@ describe('Integration Tests - Full Sync Flow', () => {
 
   describe('Cache Operations', () => {
     it('should write and read cache correctly', async () => {
-      const models = [createMockModel('test-model-1'), createMockModel('test-model-2')];
+      const models = [
+        createMockModel('test-model-1'),
+        createMockModel('test-model-2'),
+      ];
       const cacheData: CacheData = { models, timestamp: Date.now() };
 
       await writeCache(cacheData, { cacheDir });
@@ -170,7 +177,11 @@ describe('Integration Tests - Full Sync Flow', () => {
         },
       };
 
-      await writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
+      await writeFile(
+        configPath,
+        JSON.stringify(existingConfig, null, 2),
+        'utf-8',
+      );
       const testConfig = await readConfig(configPath);
       expect(testConfig).not.toBeNull();
     });
@@ -190,12 +201,18 @@ describe('Integration Tests - Full Sync Flow', () => {
         otherSetting: 'preserved',
       };
 
-      await writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
+      await writeFile(
+        configPath,
+        JSON.stringify(existingConfig, null, 2),
+        'utf-8',
+      );
 
       const content = await readFile(configPath, 'utf-8');
       const parsed = JSON.parse(content);
       expect(parsed.otherSetting).toBe('preserved');
-      expect(parsed.provider.openrouter.models['model-1'].customField).toBe('should-be-preserved');
+      expect(parsed.provider.openrouter.models['model-1'].customField).toBe(
+        'should-be-preserved',
+      );
     });
 
     it('should read JSONC config files with comments', async () => {
@@ -217,21 +234,23 @@ describe('Integration Tests - Full Sync Flow', () => {
 
       const config = await readConfig(configPath);
       expect(config).not.toBeNull();
-      expect((config as any).provider.openrouter.models['test/model'].name).toBe('Test');
+      expect(
+        (config as any).provider.openrouter.models['test/model'].name,
+      ).toBe('Test');
     });
 
     it('should preserve other providers when updating openrouter models', async () => {
       const existingConfig = {
         provider: {
           openrouter: {
-            models: {}
+            models: {},
           },
           anthropic: {
             models: {
-              'claude-3': { name: 'Claude 3' }
-            }
-          }
-        }
+              'claude-3': { name: 'Claude 3' },
+            },
+          },
+        },
       };
 
       await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
@@ -245,7 +264,9 @@ describe('Integration Tests - Full Sync Flow', () => {
       // OpenRouter model added
       expect(parsed.provider.openrouter.models['openai/gpt-4']).toBeDefined();
       // Anthropic provider preserved
-      expect(parsed.provider.anthropic.models['claude-3'].name).toBe('Claude 3');
+      expect(parsed.provider.anthropic.models['claude-3'].name).toBe(
+        'Claude 3',
+      );
     });
   });
 
@@ -266,12 +287,13 @@ describe('Integration Tests - Full Sync Flow', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
-      });
+      }) as unknown as typeof fetch;
 
       // Step 3: Fetch models (mocked)
       const fetchedModelsResult = await fetchModels();
       expect('data' in fetchedModelsResult).toBe(true);
-      const fetchedModels = fetchedModelsResult.data;
+      const fetchedModels = (fetchedModelsResult as { data: OpenRouterModel[] })
+        .data;
 
       // Step 4: Create initial config with one existing model
       const initialConfig = {
@@ -286,7 +308,11 @@ describe('Integration Tests - Full Sync Flow', () => {
           },
         },
       };
-      await writeFile(configPath, JSON.stringify(initialConfig, null, 2), 'utf-8');
+      await writeFile(
+        configPath,
+        JSON.stringify(initialConfig, null, 2),
+        'utf-8',
+      );
 
       // Step 5: Use actual updateModels() instead of reimplementing the logic
       const result = await updateModels(fetchedModels!, configPath);
@@ -298,11 +324,16 @@ describe('Integration Tests - Full Sync Flow', () => {
       // Step 6: Verify existing model is preserved
       const finalContent = await readFile(configPath, 'utf-8');
       const finalConfig = JSON.parse(finalContent);
-      expect(finalConfig.provider.openrouter.models['openai/gpt-4'].customField).toBe('preserved');
-      expect(finalConfig.provider.openrouter.models['openai/gpt-4'].name).toBe('Existing GPT-4');
+      expect(
+        finalConfig.provider.openrouter.models['openai/gpt-4'].customField,
+      ).toBe('preserved');
+      expect(finalConfig.provider.openrouter.models['openai/gpt-4'].name).toBe(
+        'Existing GPT-4',
+      );
 
       // Step 7: Verify new model was added with correct format
-      const addedModel = finalConfig.provider.openrouter.models['anthropic/claude-3'];
+      const addedModel =
+        finalConfig.provider.openrouter.models['anthropic/claude-3'];
       expect(addedModel).toBeDefined();
       expect(addedModel.cost).toBeDefined();
       expect(addedModel.limit).toBeDefined();
@@ -312,7 +343,10 @@ describe('Integration Tests - Full Sync Flow', () => {
       expect(addedModel.pricing).toBeUndefined();
 
       // Step 8: Write cache
-      await writeCache({ models: fetchedModels!, timestamp: Date.now() }, { cacheDir });
+      await writeCache(
+        { models: fetchedModels!, timestamp: Date.now() },
+        { cacheDir },
+      );
 
       // Step 9: Verify cache is now valid
       const finalCache = await readCache({ cacheDir });
@@ -320,14 +354,16 @@ describe('Integration Tests - Full Sync Flow', () => {
       expect(isCacheValid(finalCache!, 86400000)).toBe(true);
 
       // Step 10: Verify final config
-      expect(Object.keys(finalConfig.provider.openrouter.models)).toHaveLength(2);
+      expect(Object.keys(finalConfig.provider.openrouter.models)).toHaveLength(
+        2,
+      );
     });
 
     it('should skip sync when cache is valid', async () => {
       const mockModels = [createMockModel('cached-model')];
       await writeCache(
         { models: mockModels, timestamp: Date.now() },
-        { cacheDir }
+        { cacheDir },
       );
 
       const cache = await readCache({ cacheDir });
@@ -335,15 +371,20 @@ describe('Integration Tests - Full Sync Flow', () => {
       expect(isCacheValid(cache!, 86400000)).toBe(true);
 
       globalThis.fetch = mock(async () => {
-        return new Response(JSON.stringify({ data: [createMockModel('m1'), createMockModel('m2')] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      });
+        return new Response(
+          JSON.stringify({
+            data: [createMockModel('m1'), createMockModel('m2')],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }) as unknown as typeof fetch;
 
       const modelsResult = await fetchModels();
       expect('data' in modelsResult).toBe(true);
-      const models = modelsResult.data;
+      const models = (modelsResult as { data: OpenRouterModel[] }).data;
       expect(models).toHaveLength(2);
 
       await writeCache({ models, timestamp: Date.now() }, { cacheDir });
@@ -352,281 +393,306 @@ describe('Integration Tests - Full Sync Flow', () => {
       expect(updatedCache?.models).toHaveLength(2);
     });
 
-  it('should use cached data when API is unavailable', async () => {
-    const cachedModels = [createMockModel('cached-model-1'), createMockModel('cached-model-2')];
-    await writeCache({ models: cachedModels, timestamp: Date.now() }, { cacheDir });
-
-    globalThis.fetch = mock(async () => {
-      throw new Error('Network unavailable');
-    });
-
-    const cache = await readCache({ cacheDir });
-    expect(cache).not.toBeNull();
-    expect(isCacheValid(cache!, 86400000)).toBe(true);
-
-    const modelsResult = await fetchModels();
-    expect('error' in modelsResult).toBe(true);
-  });
-
-  describe('Error Handling', () => {
-    it('should handle API failure gracefully', async () => {
-      const staleModels = [createMockModel('stale-model')];
+    it('should use cached data when API is unavailable', async () => {
+      const cachedModels = [
+        createMockModel('cached-model-1'),
+        createMockModel('cached-model-2'),
+      ];
       await writeCache(
-        { models: staleModels, timestamp: Date.now() - 86400001 },
-        { cacheDir }
+        { models: cachedModels, timestamp: Date.now() },
+        { cacheDir },
       );
 
       globalThis.fetch = mock(async () => {
-        throw new Error('Network error');
-      });
-
-      const fetchedModelsResult = await fetchModels();
-      expect('error' in fetchedModelsResult).toBe(true);
+        throw new Error('Network unavailable');
+      }) as unknown as typeof fetch;
 
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
-      expect(cache?.models).toHaveLength(1);
-      expect(cache?.models[0].id).toBe('stale-model');
-    });
-
-    it('should handle HTTP error responses', async () => {
-      globalThis.fetch = mock(async () => {
-        return new Response('Internal Server Error', {
-          status: 500,
-          statusText: 'Internal Server Error',
-        });
-      });
+      expect(isCacheValid(cache!, 86400000)).toBe(true);
 
       const modelsResult = await fetchModels();
       expect('error' in modelsResult).toBe(true);
-      expect(modelsResult.error.type).toBe('http');
     });
 
-    it('should handle invalid JSON response', async () => {
-      globalThis.fetch = mock(async () => {
-        return new Response('not valid json', {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+    describe('Error Handling', () => {
+      it('should handle API failure gracefully', async () => {
+        const staleModels = [createMockModel('stale-model')];
+        await writeCache(
+          { models: staleModels, timestamp: Date.now() - 86400001 },
+          { cacheDir },
+        );
+
+        globalThis.fetch = mock(async () => {
+          throw new Error('Network error');
+        }) as unknown as typeof fetch;
+
+        const fetchedModelsResult = await fetchModels();
+        expect('error' in fetchedModelsResult).toBe(true);
+
+        const cache = await readCache({ cacheDir });
+        expect(cache).not.toBeNull();
+        expect(cache?.models).toHaveLength(1);
+        expect(cache!.models[0]!.id).toBe('stale-model');
       });
 
-      const modelsResult = await fetchModels();
-      expect('error' in modelsResult).toBe(true);
-      expect(modelsResult.error.type).toBe('parse');
-    });
+      it('should handle HTTP error responses', async () => {
+        globalThis.fetch = mock(async () => {
+          return new Response('Internal Server Error', {
+            status: 500,
+            statusText: 'Internal Server Error',
+          });
+        }) as unknown as typeof fetch;
 
-    it('should handle malformed API response structure', async () => {
-      globalThis.fetch = mock(async () => {
-        return new Response(JSON.stringify({ notData: 'wrong structure' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        const modelsResult = await fetchModels();
+        expect('error' in modelsResult).toBe(true);
+        expect((modelsResult as any).error.type).toBe('http');
       });
 
-      const modelsResult = await fetchModels();
-      expect('error' in modelsResult).toBe(true);
-      expect(modelsResult.error.type).toBe('validation');
-    });
+      it('should handle invalid JSON response', async () => {
+        globalThis.fetch = mock(async () => {
+          return new Response('not valid json', {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }) as unknown as typeof fetch;
 
-    it('should handle API timeout', async () => {
-      globalThis.fetch = mock(async () => {
-        const error = new Error('The operation was aborted');
-        error.name = 'AbortError';
-        throw error;
+        const modelsResult = await fetchModels();
+        expect('error' in modelsResult).toBe(true);
+        expect((modelsResult as any).error.type).toBe('parse');
       });
 
-      const modelsResult = await fetchModels();
-      expect('error' in modelsResult).toBe(true);
-      expect(modelsResult.error.type).toBe('timeout');
-    });
-  });
+      it('should handle malformed API response structure', async () => {
+        globalThis.fetch = mock(async () => {
+          return new Response(JSON.stringify({ notData: 'wrong structure' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }) as unknown as typeof fetch;
 
-  describe('Model Diff Logic (using actual updateModels)', () => {
-    it('should only add new models and skip existing ones', async () => {
-      const existingConfig = {
-        provider: {
-          openrouter: {
-            models: {
-              'model-a': { name: 'Model A' },
-              'model-b': { name: 'Model B' },
-            },
-          },
-        },
-      };
+        const modelsResult = await fetchModels();
+        expect('error' in modelsResult).toBe(true);
+        expect((modelsResult as any).error.type).toBe('validation');
+      });
 
-      await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+      it('should handle API timeout', async () => {
+        globalThis.fetch = mock(async () => {
+          const error = new Error('The operation was aborted');
+          error.name = 'AbortError';
+          throw error;
+        }) as unknown as typeof fetch;
 
-      const fetchedModels = [
-        createMockModel('model-a'),
-        createMockModel('model-b'),
-        createMockModel('model-c'),
-        createMockModel('model-d'),
-      ];
-
-      const result = await updateModels(fetchedModels, configPath);
-
-      expect(result.added).toBe(2); // model-c and model-d
-      expect(result.skipped).toBe(2); // model-a and model-b
-
-      const content = await readFile(configPath, 'utf-8');
-      const parsed = JSON.parse(content);
-      expect(Object.keys(parsed.provider.openrouter.models)).toHaveLength(4);
+        const modelsResult = await fetchModels();
+        expect('error' in modelsResult).toBe(true);
+        expect((modelsResult as any).error.type).toBe('timeout');
+      });
     });
 
-    it('should preserve custom fields on existing models', async () => {
-      const existingConfig = {
-        provider: {
-          openrouter: {
-            models: {
-              'model-a': {
-                name: 'Custom Name',
-                customField: 'custom-value',
-                limit: { context: 8192 },
+    describe('Model Diff Logic (using actual updateModels)', () => {
+      it('should only add new models and skip existing ones', async () => {
+        const existingConfig = {
+          provider: {
+            openrouter: {
+              models: {
+                'model-a': { name: 'Model A' },
+                'model-b': { name: 'Model B' },
               },
             },
           },
-        },
-      };
+        };
 
-      await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+        await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
 
-      const fetchedModels = [createMockModel('model-a', { context_length: 4096 })];
-      const result = await updateModels(fetchedModels, configPath);
+        const fetchedModels = [
+          createMockModel('model-a'),
+          createMockModel('model-b'),
+          createMockModel('model-c'),
+          createMockModel('model-d'),
+        ];
 
-      expect(result.skipped).toBe(1);
+        const result = await updateModels(fetchedModels, configPath);
 
-      const content = await readFile(configPath, 'utf-8');
-      const parsed = JSON.parse(content);
-      expect(parsed.provider.openrouter.models['model-a'].name).toBe('Custom Name');
-      expect(parsed.provider.openrouter.models['model-a'].customField).toBe('custom-value');
-      expect(parsed.provider.openrouter.models['model-a'].limit.context).toBe(8192);
-    });
+        expect(result.added).toBe(2); // model-c and model-d
+        expect(result.skipped).toBe(2); // model-a and model-b
 
-    it('should remove models no longer in API response', async () => {
-      const existingConfig = {
-        provider: {
-          openrouter: {
-            models: {
-              'active-model': { name: 'Active' },
-              'retired-model': { name: 'Retired' },
-              'deprecated-model': { name: 'Deprecated' },
+        const content = await readFile(configPath, 'utf-8');
+        const parsed = JSON.parse(content);
+        expect(Object.keys(parsed.provider.openrouter.models)).toHaveLength(4);
+      });
+
+      it('should preserve custom fields on existing models', async () => {
+        const existingConfig = {
+          provider: {
+            openrouter: {
+              models: {
+                'model-a': {
+                  name: 'Custom Name',
+                  customField: 'custom-value',
+                  limit: { context: 8192 },
+                },
+              },
             },
           },
-        },
-      };
+        };
 
-      await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
+        await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
 
-      // API only returns active-model and a new one
-      const fetchedModels = [
-        createMockModel('active-model'),
-        createMockModel('brand-new-model'),
-      ];
+        const fetchedModels = [
+          createMockModel('model-a', { context_length: 4096 }),
+        ];
+        const result = await updateModels(fetchedModels, configPath);
 
-      const result = await updateModels(fetchedModels, configPath);
+        expect(result.skipped).toBe(1);
 
-      expect(result.added).toBe(1); // brand-new-model
-      expect(result.skipped).toBe(1); // active-model
-      expect(result.removed).toBe(2); // retired-model, deprecated-model
+        const content = await readFile(configPath, 'utf-8');
+        const parsed = JSON.parse(content);
+        expect(parsed.provider.openrouter.models['model-a'].name).toBe(
+          'Custom Name',
+        );
+        expect(parsed.provider.openrouter.models['model-a'].customField).toBe(
+          'custom-value',
+        );
+        expect(parsed.provider.openrouter.models['model-a'].limit.context).toBe(
+          8192,
+        );
+      });
 
-      const content = await readFile(configPath, 'utf-8');
-      const parsed = JSON.parse(content);
-      const models = parsed.provider.openrouter.models;
+      it('should remove models no longer in API response', async () => {
+        const existingConfig = {
+          provider: {
+            openrouter: {
+              models: {
+                'active-model': { name: 'Active' },
+                'retired-model': { name: 'Retired' },
+                'deprecated-model': { name: 'Deprecated' },
+              },
+            },
+          },
+        };
 
-      expect(Object.keys(models)).toHaveLength(2);
-      expect(models['active-model']).toBeDefined();
-      expect(models['brand-new-model']).toBeDefined();
-      expect(models['retired-model']).toBeUndefined();
-      expect(models['deprecated-model']).toBeUndefined();
-    });
+        await writeFile(configPath, JSON.stringify(existingConfig), 'utf-8');
 
-    it('should skip models without IDs', async () => {
-      await writeFile(configPath, JSON.stringify({
-        provider: { openrouter: { models: {} } }
-      }), 'utf-8');
+        // API only returns active-model and a new one
+        const fetchedModels = [
+          createMockModel('active-model'),
+          createMockModel('brand-new-model'),
+        ];
 
-      const fetchedModels = [
-        createMockModel('valid-model'),
-        { ...createMockModel(''), id: '' },
-      ];
+        const result = await updateModels(fetchedModels, configPath);
 
-      const result = await updateModels(fetchedModels, configPath);
-      expect(result.added).toBe(1);
-      expect(result.skipped).toBe(1);
-    });
-  });
+        expect(result.added).toBe(1); // brand-new-model
+        expect(result.skipped).toBe(1); // active-model
+        expect(result.removed).toBe(2); // retired-model, deprecated-model
 
-  describe('Cache Path Resolution', () => {
-    it('should resolve cache path with custom config', () => {
-      const customCacheDir = '/custom/cache/dir';
-      const path = getCachePath({ cacheDir: customCacheDir });
-      expect(path.includes('custom') && path.includes('cache') && path.includes('dir')).toBe(true);
-      expect(path).toContain('cache.json');
-    });
+        const content = await readFile(configPath, 'utf-8');
+        const parsed = JSON.parse(content);
+        const models = parsed.provider.openrouter.models;
 
-    it('should use default cache path without config', () => {
-      const path = getCachePath();
-      expect(path).toContain('.local');
-      expect(path).toContain('cache.json');
-    });
-  });
-});
+        expect(Object.keys(models)).toHaveLength(2);
+        expect(models['active-model']).toBeDefined();
+        expect(models['brand-new-model']).toBeDefined();
+        expect(models['retired-model']).toBeUndefined();
+        expect(models['deprecated-model']).toBeUndefined();
+      });
 
-describe('End-to-End Sync Scenarios', () => {
-  let tempDir: string;
-  let cacheDir: string;
-  let originalFetch: typeof globalThis.fetch;
+      it('should skip models without IDs', async () => {
+        await writeFile(
+          configPath,
+          JSON.stringify({
+            provider: { openrouter: { models: {} } },
+          }),
+          'utf-8',
+        );
 
-  beforeEach(async () => {
-    tempDir = join(tmpdir(), `openrouter-sync-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    cacheDir = join(tempDir, 'cache');
-    await mkdir(cacheDir, { recursive: true });
-    originalFetch = globalThis.fetch;
-  });
+        const fetchedModels = [
+          createMockModel('valid-model'),
+          { ...createMockModel(''), id: '' },
+        ];
 
-  afterEach(async () => {
-    globalThis.fetch = originalFetch;
-    try {
-      await rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-  });
-
-  it('should handle first-time sync with no existing cache or config', async () => {
-    const apiModels = [
-      createMockModel('provider1/model-1'),
-      createMockModel('provider2/model-2'),
-      createMockModel('provider3/model-3'),
-    ];
-
-    globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({ data: apiModels }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        const result = await updateModels(fetchedModels, configPath);
+        expect(result.added).toBe(1);
+        expect(result.skipped).toBe(1);
       });
     });
 
-    const cache = await readCache({ cacheDir });
-    expect(cache).toBeNull();
+    describe('Cache Path Resolution', () => {
+      it('should resolve cache path with custom config', () => {
+        const customCacheDir = '/custom/cache/dir';
+        const path = getCachePath({ cacheDir: customCacheDir });
+        expect(
+          path.includes('custom') &&
+            path.includes('cache') &&
+            path.includes('dir'),
+        ).toBe(true);
+        expect(path).toContain('cache.json');
+      });
 
-    const modelsResult = await fetchModels();
-    expect('data' in modelsResult).toBe(true);
-    const models = modelsResult.data;
-    expect(models).toHaveLength(3);
-
-    await writeCache({ models, timestamp: Date.now() }, { cacheDir });
-
-    const writtenCache = await readCache({ cacheDir });
-    expect(writtenCache).not.toBeNull();
-    expect(writtenCache?.models).toHaveLength(3);
+      it('should use default cache path without config', () => {
+        const path = getCachePath();
+        expect(path).toContain('.local');
+        expect(path).toContain('cache.json');
+      });
+    });
   });
+
+  describe('End-to-End Sync Scenarios', () => {
+    let tempDir: string;
+    let cacheDir: string;
+    let originalFetch: typeof globalThis.fetch;
+
+    beforeEach(async () => {
+      tempDir = join(
+        tmpdir(),
+        `openrouter-sync-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      );
+      cacheDir = join(tempDir, 'cache');
+      await mkdir(cacheDir, { recursive: true });
+      originalFetch = globalThis.fetch;
+    });
+
+    afterEach(async () => {
+      globalThis.fetch = originalFetch;
+      try {
+        await rm(tempDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    });
+
+    it('should handle first-time sync with no existing cache or config', async () => {
+      const apiModels = [
+        createMockModel('provider1/model-1'),
+        createMockModel('provider2/model-2'),
+        createMockModel('provider3/model-3'),
+      ];
+
+      globalThis.fetch = mock(async () => {
+        return new Response(JSON.stringify({ data: apiModels }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }) as unknown as typeof fetch;
+
+      const cache = await readCache({ cacheDir });
+      expect(cache).toBeNull();
+
+      const modelsResult = await fetchModels();
+      expect('data' in modelsResult).toBe(true);
+      const models = (modelsResult as { data: OpenRouterModel[] }).data;
+      expect(models).toHaveLength(3);
+
+      await writeCache({ models, timestamp: Date.now() }, { cacheDir });
+
+      const writtenCache = await readCache({ cacheDir });
+      expect(writtenCache).not.toBeNull();
+      expect(writtenCache?.models).toHaveLength(3);
+    });
 
     it('should skip sync when cache is valid', async () => {
       const mockModels = [createMockModel('cached-model')];
       await writeCache(
         { models: mockModels, timestamp: Date.now() },
-        { cacheDir }
+        { cacheDir },
       );
 
       const cache = await readCache({ cacheDir });
@@ -638,7 +704,7 @@ describe('End-to-End Sync Scenarios', () => {
       const oldModels = [createMockModel('old-model')];
       await writeCache(
         { models: oldModels, timestamp: Date.now() - 86400001 },
-        { cacheDir }
+        { cacheDir },
       );
 
       const newModels = [
@@ -651,7 +717,7 @@ describe('End-to-End Sync Scenarios', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
-      });
+      }) as unknown as typeof fetch;
 
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
@@ -659,7 +725,7 @@ describe('End-to-End Sync Scenarios', () => {
 
       const modelsResult = await fetchModels();
       expect('data' in modelsResult).toBe(true);
-      const models = modelsResult.data;
+      const models = (modelsResult as { data: OpenRouterModel[] }).data;
       expect(models).toHaveLength(2);
 
       await writeCache({ models, timestamp: Date.now() }, { cacheDir });
@@ -670,12 +736,18 @@ describe('End-to-End Sync Scenarios', () => {
     });
 
     it('should use cached data when API is unavailable', async () => {
-      const cachedModels = [createMockModel('cached-model-1'), createMockModel('cached-model-2')];
-      await writeCache({ models: cachedModels, timestamp: Date.now() }, { cacheDir });
+      const cachedModels = [
+        createMockModel('cached-model-1'),
+        createMockModel('cached-model-2'),
+      ];
+      await writeCache(
+        { models: cachedModels, timestamp: Date.now() },
+        { cacheDir },
+      );
 
       globalThis.fetch = mock(async () => {
         throw new Error('Network unavailable');
-      });
+      }) as unknown as typeof fetch;
 
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
@@ -683,11 +755,11 @@ describe('End-to-End Sync Scenarios', () => {
 
       const modelsResult = await fetchModels();
       expect('error' in modelsResult).toBe(true);
-      expect(modelsResult.error.type).toBe('network');
+      expect((modelsResult as any).error.type).toBe('network');
 
       const fallbackCache = await readCache({ cacheDir });
       expect(fallbackCache?.models).toHaveLength(2);
-      expect(fallbackCache?.models[0].id).toBe('cached-model-1');
+      expect(fallbackCache!.models[0]!.id).toBe('cached-model-1');
     });
   });
 });
@@ -700,7 +772,10 @@ describe('performSync file write integration', () => {
   let originalConfigDir: string | undefined;
 
   beforeEach(async () => {
-    tempDir = join(tmpdir(), `openrouter-performsync-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    tempDir = join(
+      tmpdir(),
+      `openrouter-performsync-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     configDir = join(tempDir, 'config', 'opencode');
     configPath = join(configDir, 'opencode.json');
 
@@ -739,34 +814,65 @@ describe('performSync file write integration', () => {
 
   it('should write models to config file on disk via performSync', async () => {
     // Create an empty config file
-    await writeFile(configPath, JSON.stringify({
-      provider: { openrouter: { models: {} } }
-    }, null, 2), 'utf-8');
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          provider: { openrouter: { models: {} } },
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
 
     const mockModels = [
       createMockModel('openai/gpt-4', {
-        pricing: { prompt: '0.00003', completion: '0.00006', input_cache_read: '0.000015' },
+        pricing: {
+          prompt: '0.00003',
+          completion: '0.00006',
+          input_cache_read: '0.000015',
+        },
         context_length: 128000,
-        top_provider: { context_length: 128000, max_completion_tokens: 4096, is_moderated: false },
+        top_provider: {
+          context_length: 128000,
+          max_completion_tokens: 4096,
+          is_moderated: false,
+        },
       }),
       createMockModel('anthropic/claude-3-opus', {
-        pricing: { prompt: '0.000015', completion: '0.000075', input_cache_read: '0.0000075' },
+        pricing: {
+          prompt: '0.000015',
+          completion: '0.000075',
+          input_cache_read: '0.0000075',
+        },
         context_length: 200000,
-        top_provider: { context_length: 200000, max_completion_tokens: 4096, is_moderated: false },
+        top_provider: {
+          context_length: 200000,
+          max_completion_tokens: 4096,
+          is_moderated: false,
+        },
       }),
     ];
 
     // Cache dir derived from OPENCODE_CONFIG_DIR by getDefaultCacheDir logic:
     // parentDir = dirname(configDir) = tempDir/config
     // cacheDir = parentDir/share/opencode/openrouter-sync
-    const cacheDir = join(tempDir, 'config', 'share', 'opencode', 'openrouter-sync');
+    const cacheDir = join(
+      tempDir,
+      'config',
+      'share',
+      'opencode',
+      'openrouter-sync',
+    );
 
     const deps: SyncDeps = {
       readCache: () => readCache({ cacheDir }),
       writeCache: (data) => writeCache(data, { cacheDir }),
       isCacheValid: (data, ttlMs) => isCacheValid(data, ttlMs),
       fetchModels: async () => ({ data: mockModels }),
-      updateModels: (models, configPath, log) => updateModels(models, configPath, log),
+      updateModels: (models, configPath, log) =>
+        updateModels(models, configPath, log),
       readConfig: () => readConfig(),
     };
 
@@ -807,17 +913,34 @@ describe('performSync file write integration', () => {
   });
 
   it('should skip sync when cache file on disk is still valid', async () => {
-    const cacheDir = join(tempDir, 'config', 'share', 'opencode', 'openrouter-sync');
+    const cacheDir = join(
+      tempDir,
+      'config',
+      'share',
+      'opencode',
+      'openrouter-sync',
+    );
     await mkdir(cacheDir, { recursive: true });
 
     // Write a valid cache to disk
     const cachedModels = [createMockModel('cached/model')];
-    await writeCache({ models: cachedModels, timestamp: Date.now() }, { cacheDir });
+    await writeCache(
+      { models: cachedModels, timestamp: Date.now() },
+      { cacheDir },
+    );
 
     // Write config with no models
-    await writeFile(configPath, JSON.stringify({
-      provider: { openrouter: { models: {} } }
-    }, null, 2), 'utf-8');
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          provider: { openrouter: { models: {} } },
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
 
     let fetchCalled = false;
     const deps: SyncDeps = {
@@ -828,7 +951,8 @@ describe('performSync file write integration', () => {
         fetchCalled = true;
         return { data: [] };
       },
-      updateModels: (models, configPath, log) => updateModels(models, configPath, log),
+      updateModels: (models, configPath, log) =>
+        updateModels(models, configPath, log),
       readConfig: () => readConfig(),
     };
 
@@ -847,21 +971,37 @@ describe('performSync file write integration', () => {
   it('should produce model entries conforming to the OpenCode JSON schema', async () => {
     // Extract the model entry schema from src/schema.ts:
     // schema.provider (optional) -> record value -> .models (optional) -> record value
-    const providerRecord = schema.shape.provider.unwrap(); // ZodRecord
-    const providerObj = providerRecord._def.valueType;     // provider object schema
+    const providerRecord = (schema as any).shape.provider.unwrap(); // ZodRecord
+    const providerObj = providerRecord._def.valueType; // provider object schema
     const modelsRecord = providerObj.shape.models.unwrap(); // ZodRecord
     const openCodeModelSchema = modelsRecord._def.valueType; // model entry schema (.strict())
 
     // Create config file
-    await writeFile(configPath, JSON.stringify({
-      provider: { openrouter: { models: {} } }
-    }, null, 2), 'utf-8');
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          provider: { openrouter: { models: {} } },
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
 
     const mockModels = [
       createMockModel('openai/gpt-4', {
-        pricing: { prompt: '0.00003', completion: '0.00006', input_cache_read: '0.000015' },
+        pricing: {
+          prompt: '0.00003',
+          completion: '0.00006',
+          input_cache_read: '0.000015',
+        },
         context_length: 128000,
-        top_provider: { context_length: 128000, max_completion_tokens: 4096, is_moderated: false },
+        top_provider: {
+          context_length: 128000,
+          max_completion_tokens: 4096,
+          is_moderated: false,
+        },
         supported_parameters: ['temperature', 'tools', 'reasoning'],
         architecture: {
           modality: 'text+image->text',
@@ -872,9 +1012,17 @@ describe('performSync file write integration', () => {
         },
       }),
       createMockModel('anthropic/claude-3-opus', {
-        pricing: { prompt: '0.000015', completion: '0.000075', input_cache_read: '0.0000075' },
+        pricing: {
+          prompt: '0.000015',
+          completion: '0.000075',
+          input_cache_read: '0.0000075',
+        },
         context_length: 200000,
-        top_provider: { context_length: 200000, max_completion_tokens: 4096, is_moderated: false },
+        top_provider: {
+          context_length: 200000,
+          max_completion_tokens: 4096,
+          is_moderated: false,
+        },
         supported_parameters: ['temperature', 'max_tokens'],
         architecture: {
           modality: 'text+image->text',
@@ -885,9 +1033,17 @@ describe('performSync file write integration', () => {
         },
       }),
       createMockModel('meta/llama-3', {
-        pricing: { prompt: '0.000001', completion: '0.000002', input_cache_read: '0' },
+        pricing: {
+          prompt: '0.000001',
+          completion: '0.000002',
+          input_cache_read: '0',
+        },
         context_length: 8192,
-        top_provider: { context_length: 8192, max_completion_tokens: 2048, is_moderated: false },
+        top_provider: {
+          context_length: 8192,
+          max_completion_tokens: 2048,
+          is_moderated: false,
+        },
         supported_parameters: ['temperature'],
         architecture: {
           modality: 'text->text',
@@ -899,14 +1055,21 @@ describe('performSync file write integration', () => {
       }),
     ];
 
-    const cacheDir = join(tempDir, 'config', 'share', 'opencode', 'openrouter-sync');
+    const cacheDir = join(
+      tempDir,
+      'config',
+      'share',
+      'opencode',
+      'openrouter-sync',
+    );
 
     const deps: SyncDeps = {
       readCache: () => readCache({ cacheDir }),
       writeCache: (data) => writeCache(data, { cacheDir }),
       isCacheValid: (data, ttlMs) => isCacheValid(data, ttlMs),
       fetchModels: async () => ({ data: mockModels }),
-      updateModels: (models, configPath, log) => updateModels(models, configPath, log),
+      updateModels: (models, configPath, log) =>
+        updateModels(models, configPath, log),
       readConfig: () => readConfig(),
     };
 
@@ -921,7 +1084,10 @@ describe('performSync file write integration', () => {
       const result = openCodeModelSchema.safeParse(modelEntry);
       expect(result.success).toBe(true);
       if (!result.success) {
-        console.error(`Schema validation failed for ${modelId}:`, result.error.issues);
+        console.error(
+          `Schema validation failed for ${modelId}:`,
+          result.error.issues,
+        );
       }
     }
 
@@ -937,62 +1103,83 @@ describe('performSync file write integration', () => {
 describe('Live API integration', () => {
   const LIVE_API_TIMEOUT = 60000;
 
-  it('should find minimax/minimax-m2.5:free in the OpenRouter API response', async () => {
-    const result = await fetchModels();
+  it(
+    'should find minimax/minimax-m2.5:free in the OpenRouter API response',
+    async () => {
+      const result = await fetchModels();
 
-    expect('data' in result).toBe(true);
-    if (!('data' in result)) return;
+      expect('data' in result).toBe(true);
+      if (!('data' in result)) return;
 
-    const models = result.data;
-    expect(models.length).toBeGreaterThan(0);
+      const models = result.data;
+      expect(models.length).toBeGreaterThan(0);
 
-    const minimax = models.find(m => m.id === 'minimax/minimax-m2.5:free');
-    expect(minimax).toBeDefined();
-    expect(minimax!.name).toBeTruthy();
-    expect(minimax!.context_length).toBeGreaterThan(0);
-  }, LIVE_API_TIMEOUT);
+      const minimax = models.find((m) => m.id === 'minimax/minimax-m2.5:free');
+      expect(minimax).toBeDefined();
+      expect(minimax?.name).toBeTruthy();
+      expect(minimax?.context_length).toBeGreaterThan(0);
+    },
+    LIVE_API_TIMEOUT,
+  );
 
-  it('should fetch models from API and write them to config via updateModels', async () => {
-    // Fetch real models from OpenRouter API
-    const result = await fetchModels();
-    expect('data' in result).toBe(true);
-    if (!('data' in result)) return;
+  it(
+    'should fetch models from API and write them to config via updateModels',
+    async () => {
+      // Fetch real models from OpenRouter API
+      const result = await fetchModels();
+      expect('data' in result).toBe(true);
+      if (!('data' in result)) return;
 
-    const models = result.data;
-    expect(models.length).toBeGreaterThan(100); // OpenRouter has hundreds of models
+      const models = result.data;
+      expect(models.length).toBeGreaterThan(100); // OpenRouter has hundreds of models
 
-    // Write to a temp config file using the real updateModels function
-    const tempConfigDir = join(tmpdir(), `openrouter-live-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    const tempConfigPath = join(tempConfigDir, 'opencode.json');
+      // Write to a temp config file using the real updateModels function
+      const tempConfigDir = join(
+        tmpdir(),
+        `openrouter-live-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      );
+      const tempConfigPath = join(tempConfigDir, 'opencode.json');
 
-    try {
-      await mkdir(tempConfigDir, { recursive: true });
-      await writeFile(tempConfigPath, JSON.stringify({
-        provider: { openrouter: { models: {} } }
-      }, null, 2), 'utf-8');
+      try {
+        await mkdir(tempConfigDir, { recursive: true });
+        await writeFile(
+          tempConfigPath,
+          JSON.stringify(
+            {
+              provider: { openrouter: { models: {} } },
+            },
+            null,
+            2,
+          ),
+          'utf-8',
+        );
 
-      const updateResult = await updateModels(models, tempConfigPath);
+        const updateResult = await updateModels(models, tempConfigPath);
 
-      expect(updateResult.added).toBeGreaterThan(100);
-      expect(updateResult.skipped).toBe(0);
+        expect(updateResult.added).toBeGreaterThan(100);
+        expect(updateResult.skipped).toBe(0);
 
-      // Read config back and verify minimax model is there
-      const configContent = await readFile(tempConfigPath, 'utf-8');
-      const config = JSON.parse(configContent);
-      const configModels = config.provider.openrouter.models;
+        // Read config back and verify minimax model is there
+        const configContent = await readFile(tempConfigPath, 'utf-8');
+        const config = JSON.parse(configContent);
+        const configModels = config.provider.openrouter.models;
 
-      expect(configModels['minimax/minimax-m2.5:free']).toBeDefined();
-      expect(configModels['minimax/minimax-m2.5:free'].name).toBeTruthy();
+        expect(configModels['minimax/minimax-m2.5:free']).toBeDefined();
+        expect(configModels['minimax/minimax-m2.5:free'].name).toBeTruthy();
 
-      // Verify model entry shape (no raw API fields)
-      const entry = configModels['minimax/minimax-m2.5:free'];
-      expect(entry.id).toBeUndefined();
-      expect(entry.pricing).toBeUndefined();
-      expect(entry.architecture).toBeUndefined();
-    } finally {
-      await rm(tempConfigDir, { recursive: true, force: true }).catch(() => {});
-    }
-  }, LIVE_API_TIMEOUT);
+        // Verify model entry shape (no raw API fields)
+        const entry = configModels['minimax/minimax-m2.5:free'];
+        expect(entry.id).toBeUndefined();
+        expect(entry.pricing).toBeUndefined();
+        expect(entry.architecture).toBeUndefined();
+      } finally {
+        await rm(tempConfigDir, { recursive: true, force: true }).catch(
+          () => {},
+        );
+      }
+    },
+    LIVE_API_TIMEOUT,
+  );
 });
 
 /**
@@ -1006,7 +1193,7 @@ describe('performSync against real profile', () => {
   let originalContent: string;
 
   // Extract the model entry validator from the schema once
-  const providerRecord = schema.shape.provider.unwrap();
+  const providerRecord = (schema as any).shape.provider.unwrap();
   const providerObj = providerRecord._def.valueType;
   const modelsRecord = providerObj.shape.models.unwrap();
   const openCodeModelSchema = modelsRecord._def.valueType;
@@ -1017,6 +1204,13 @@ describe('performSync against real profile', () => {
 
     // Back up the real config
     originalContent = await readFile(realConfigPath, 'utf-8');
+
+    // Reset to empty models so the test starts from a clean state
+    await writeFile(
+      realConfigPath,
+      JSON.stringify({ provider: { openrouter: { models: {} } } }, null, 2),
+      'utf-8',
+    );
   });
 
   afterEach(async () => {
@@ -1024,48 +1218,56 @@ describe('performSync against real profile', () => {
     await writeFile(realConfigPath, originalContent, 'utf-8');
   });
 
-  it('should sync models to real config and produce schema-valid entries', async () => {
-    // Fetch real models from OpenRouter API
-    const result = await fetchModels();
-    expect('data' in result).toBe(true);
-    if (!('data' in result)) return;
+  it(
+    'should sync models to real config and produce schema-valid entries',
+    async () => {
+      // Fetch real models from OpenRouter API
+      const result = await fetchModels();
+      expect('data' in result).toBe(true);
+      if (!('data' in result)) return;
 
-    const models = result.data;
-    expect(models.length).toBeGreaterThan(100);
+      const models = result.data;
+      expect(models.length).toBeGreaterThan(100);
 
-    // Write to the real config
-    const updateResult = await updateModels(models, realConfigPath);
-    console.log('updateModels result:', updateResult);
-    expect(updateResult.added).toBeGreaterThan(0);
+      // Write to the real config (starts empty from beforeEach)
+      const updateResult = await updateModels(models, realConfigPath);
+      console.log('updateModels result:', updateResult);
+      expect(updateResult.added).toBeGreaterThan(0);
 
-    // Read back and validate
-    const configContent = await readFile(realConfigPath, 'utf-8');
-    const config = JSON.parse(configContent);
-    const configModels = config.provider?.openrouter?.models ?? {};
-    const modelIds = Object.keys(configModels);
+      // Read back and validate
+      const configContent = await readFile(realConfigPath, 'utf-8');
+      const config = JSON.parse(configContent);
+      const configModels = config.provider?.openrouter?.models ?? {};
+      const modelIds = Object.keys(configModels);
 
-    expect(modelIds.length).toBeGreaterThan(100);
-    expect(modelIds).toContain('minimax/minimax-m2.5:free');
+      expect(modelIds.length).toBeGreaterThan(100);
+      expect(modelIds).toContain('minimax/minimax-m2.5:free');
 
-    // Validate every model entry against the OpenCode schema
-    const failures: string[] = [];
-    for (const [modelId, modelEntry] of Object.entries(configModels)) {
-      const parseResult = openCodeModelSchema.safeParse(modelEntry);
-      if (!parseResult.success) {
-        failures.push(`${modelId}: ${parseResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')}`);
+      // Validate every model entry against the OpenCode schema
+      const failures: string[] = [];
+      for (const [modelId, modelEntry] of Object.entries(configModels)) {
+        const parseResult = openCodeModelSchema.safeParse(modelEntry);
+        if (!parseResult.success) {
+          failures.push(
+            `${modelId}: ${parseResult.error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+          );
+        }
       }
-    }
 
-    if (failures.length > 0) {
-      console.error(`Schema validation failures (${failures.length}/${modelIds.length}):`);
-      // Log first 10 for diagnostics
-      for (const f of failures.slice(0, 10)) {
-        console.error(' ', f);
+      if (failures.length > 0) {
+        console.error(
+          `Schema validation failures (${failures.length}/${modelIds.length}):`,
+        );
+        // Log first 10 for diagnostics
+        for (const f of failures.slice(0, 10)) {
+          console.error(' ', f);
+        }
       }
-    }
 
-    expect(failures).toHaveLength(0);
-  }, TIMEOUT);
+      expect(failures).toHaveLength(0);
+    },
+    TIMEOUT,
+  );
 });
 
 /**
@@ -1076,45 +1278,62 @@ describe('performSync against real profile', () => {
 describe('Config file model verification', () => {
   const TIMEOUT = 60000;
 
-  it('should have minimax/minimax-m2.5:free in config after updateModels writes real API data', async () => {
-    // Fetch real models from OpenRouter API
-    const result = await fetchModels();
-    expect('data' in result).toBe(true);
-    if (!('data' in result)) return;
+  it(
+    'should have minimax/minimax-m2.5:free in config after updateModels writes real API data',
+    async () => {
+      // Fetch real models from OpenRouter API
+      const result = await fetchModels();
+      expect('data' in result).toBe(true);
+      if (!('data' in result)) return;
 
-    const models = result.data;
+      const models = result.data;
 
-    // Write to a temp config
-    const tempConfigDir = join(tmpdir(), `openrouter-configcheck-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    const tempConfigPath = join(tempConfigDir, 'opencode.json');
+      // Write to a temp config
+      const tempConfigDir = join(
+        tmpdir(),
+        `openrouter-configcheck-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      );
+      const tempConfigPath = join(tempConfigDir, 'opencode.json');
 
-    try {
-      await mkdir(tempConfigDir, { recursive: true });
-      await writeFile(tempConfigPath, JSON.stringify({
-        provider: { openrouter: { models: {} } }
-      }, null, 2), 'utf-8');
+      try {
+        await mkdir(tempConfigDir, { recursive: true });
+        await writeFile(
+          tempConfigPath,
+          JSON.stringify(
+            {
+              provider: { openrouter: { models: {} } },
+            },
+            null,
+            2,
+          ),
+          'utf-8',
+        );
 
-      await updateModels(models, tempConfigPath);
+        await updateModels(models, tempConfigPath);
 
-      // Read config back and check for the model
-      const configContent = await readFile(tempConfigPath, 'utf-8');
-      const config = JSON.parse(configContent);
-      const configModels = config.provider.openrouter.models;
-      const modelIds = Object.keys(configModels);
+        // Read config back and check for the model
+        const configContent = await readFile(tempConfigPath, 'utf-8');
+        const config = JSON.parse(configContent);
+        const configModels = config.provider.openrouter.models;
+        const modelIds = Object.keys(configModels);
 
-      // Verify the specific model is in the config
-      expect(modelIds).toContain('minimax/minimax-m2.5:free');
+        // Verify the specific model is in the config
+        expect(modelIds).toContain('minimax/minimax-m2.5:free');
 
-      // Verify it has a valid entry
-      const entry = configModels['minimax/minimax-m2.5:free'];
-      expect(entry).toBeDefined();
-      expect(entry.name).toBeTruthy();
-      expect(entry.limit).toBeDefined();
-      expect(entry.limit.context).toBeGreaterThan(0);
-    } finally {
-      await rm(tempConfigDir, { recursive: true, force: true }).catch(() => {});
-    }
-  }, TIMEOUT);
+        // Verify it has a valid entry
+        const entry = configModels['minimax/minimax-m2.5:free'];
+        expect(entry).toBeDefined();
+        expect(entry.name).toBeTruthy();
+        expect(entry.limit).toBeDefined();
+        expect(entry.limit.context).toBeGreaterThan(0);
+      } finally {
+        await rm(tempConfigDir, { recursive: true, force: true }).catch(
+          () => {},
+        );
+      }
+    },
+    TIMEOUT,
+  );
 });
 
 /**
@@ -1129,7 +1348,7 @@ describe('opencode CLI model list', () => {
   let originalContent: string;
 
   // Extract the model entry validator from the schema once
-  const providerRecord = schema.shape.provider.unwrap();
+  const providerRecord = (schema as any).shape.provider.unwrap();
   const providerObj = providerRecord._def.valueType;
   const modelsRecord = providerObj.shape.models.unwrap();
   const openCodeModelSchema = modelsRecord._def.valueType;
@@ -1140,6 +1359,13 @@ describe('opencode CLI model list', () => {
 
     // Back up the real config
     originalContent = await readFile(realConfigPath, 'utf-8');
+
+    // Reset to empty models so updateModels starts from a clean state
+    await writeFile(
+      realConfigPath,
+      JSON.stringify({ provider: { openrouter: { models: {} } } }, null, 2),
+      'utf-8',
+    );
 
     // Fetch models from the live API and write them to the real config
     const result = await fetchModels();
@@ -1161,12 +1387,16 @@ describe('opencode CLI model list', () => {
     for (const [modelId, modelEntry] of Object.entries(configModels)) {
       const parseResult = openCodeModelSchema.safeParse(modelEntry);
       if (!parseResult.success) {
-        failures.push(`${modelId}: ${parseResult.error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', ')}`);
+        failures.push(
+          `${modelId}: ${parseResult.error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+        );
       }
     }
 
     if (failures.length > 0) {
-      console.error(`Schema validation failures (${failures.length}/${Object.keys(configModels).length}):`);
+      console.error(
+        `Schema validation failures (${failures.length}/${Object.keys(configModels).length}):`,
+      );
       for (const f of failures.slice(0, 10)) {
         console.error(' ', f);
       }
@@ -1180,7 +1410,7 @@ describe('opencode CLI model list', () => {
   });
 
   function runOpenCode(args: string[]): Promise<string> {
-    const { spawn } = require('child_process');
+    const { spawn } = require('node:child_process');
     return new Promise<string>((resolve, reject) => {
       const proc = spawn('opencode', args, {
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -1202,7 +1432,11 @@ describe('opencode CLI model list', () => {
       proc.on('error', (err: Error) => reject(err));
       proc.on('close', (code: number | null) => {
         if (code !== 0) {
-          reject(new Error(`opencode ${args.join(' ')} exited with code ${code}\nstderr: ${stderr}\nstdout: ${stdout}`));
+          reject(
+            new Error(
+              `opencode ${args.join(' ')} exited with code ${code}\nstderr: ${stderr}\nstdout: ${stdout}`,
+            ),
+          );
         } else {
           resolve(stdout);
         }
@@ -1210,22 +1444,33 @@ describe('opencode CLI model list', () => {
     });
   }
 
-  it('should list openrouter/minimax/minimax-m2.5:free in opencode models output', async () => {
-    const output = await runOpenCode(['models']);
+  it(
+    'should list openrouter/minimax/minimax-m2.5:free in opencode models output',
+    async () => {
+      const output = await runOpenCode(['models']);
 
-    const lines = output.split('\n').map(l => l.trim()).filter(Boolean);
-    const openrouterModels = lines.filter(l => l.startsWith('openrouter/'));
+      const lines = output
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const openrouterModels = lines.filter((l) => l.startsWith('openrouter/'));
 
-    // Verify that openrouter models exist at all
-    expect(openrouterModels.length).toBeGreaterThan(0);
+      // Verify that openrouter models exist at all
+      expect(openrouterModels.length).toBeGreaterThan(0);
 
-    // Check for the specific :free model
-    const hasFreeModel = lines.some(l => l.includes('minimax/minimax-m2.5:free'));
-    if (!hasFreeModel) {
-      // Log diagnostic info: show all minimax-related models
-      const minimaxModels = lines.filter(l => l.toLowerCase().includes('minimax'));
-      console.log('Minimax models found in opencode models:', minimaxModels);
-    }
-    expect(hasFreeModel).toBe(true);
-  }, CLI_TIMEOUT);
+      // Check for the specific :free model
+      const hasFreeModel = lines.some((l) =>
+        l.includes('minimax/minimax-m2.5:free'),
+      );
+      if (!hasFreeModel) {
+        // Log diagnostic info: show all minimax-related models
+        const minimaxModels = lines.filter((l) =>
+          l.toLowerCase().includes('minimax'),
+        );
+        console.log('Minimax models found in opencode models:', minimaxModels);
+      }
+      expect(hasFreeModel).toBe(true);
+    },
+    CLI_TIMEOUT,
+  );
 });

@@ -1,15 +1,15 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: z.ZodType requires explicit any for recursive/complex schemas where the inferred type is not expressible
 export const schema: z.ZodType<any> = z
   .object({
     $schema: z
       .string()
-      .describe("JSON schema reference for configuration validation")
+      .describe('JSON schema reference for configuration validation')
       .optional(),
     logLevel: z
-      .enum(["DEBUG", "INFO", "WARN", "ERROR"])
-      .describe("Log level")
+      .enum(['DEBUG', 'INFO', 'WARN', 'ERROR'])
+      .describe('Log level')
       .optional(),
     server: z
       .object({
@@ -18,23 +18,23 @@ export const schema: z.ZodType<any> = z
           .int()
           .gt(0)
           .lte(9007199254740991)
-          .describe("Port to listen on")
+          .describe('Port to listen on')
           .optional(),
-        hostname: z.string().describe("Hostname to listen on").optional(),
-        mdns: z.boolean().describe("Enable mDNS service discovery").optional(),
+        hostname: z.string().describe('Hostname to listen on').optional(),
+        mdns: z.boolean().describe('Enable mDNS service discovery').optional(),
         mdnsDomain: z
           .string()
           .describe(
-            "Custom domain name for mDNS service (default: opencode.local)",
+            'Custom domain name for mDNS service (default: opencode.local)',
           )
           .optional(),
         cors: z
           .array(z.string())
-          .describe("Additional domains to allow for CORS")
+          .describe('Additional domains to allow for CORS')
           .optional(),
       })
       .strict()
-      .describe("Server configuration for opencode serve and web commands")
+      .describe('Server configuration for opencode serve and web commands')
       .optional(),
     command: z
       .record(
@@ -48,23 +48,23 @@ export const schema: z.ZodType<any> = z
           })
           .strict(),
       )
-      .describe("Command configuration, see https://opencode.ai/docs/commands")
+      .describe('Command configuration, see https://opencode.ai/docs/commands')
       .optional(),
     skills: z
       .object({
         paths: z
           .array(z.string())
-          .describe("Additional paths to skill folders")
+          .describe('Additional paths to skill folders')
           .optional(),
         urls: z
           .array(z.string())
           .describe(
-            "URLs to fetch skills from (e.g., https://example.com/.well-known/skills/)",
+            'URLs to fetch skills from (e.g., https://example.com/.well-known/skills/)',
           )
           .optional(),
       })
       .strict()
-      .describe("Additional skill folder paths")
+      .describe('Additional skill folder paths')
       .optional(),
     watcher: z
       .object({ ignore: z.array(z.string()).optional() })
@@ -74,11 +74,11 @@ export const schema: z.ZodType<any> = z
     snapshot: z
       .boolean()
       .describe(
-        "Enable or disable snapshot tracking. When false, filesystem snapshots are not recorded and undoing or reverting will not undo/redo file changes. Defaults to true.",
+        'Enable or disable snapshot tracking. When false, filesystem snapshots are not recorded and undoing or reverting will not undo/redo file changes. Defaults to true.',
       )
       .optional(),
     share: z
-      .enum(["manual", "auto", "disabled"])
+      .enum(['manual', 'auto', 'disabled'])
       .describe(
         "Control sharing behavior:'manual' allows manual sharing via commands, 'auto' enables automatic sharing, 'disabled' disables all sharing",
       )
@@ -90,31 +90,31 @@ export const schema: z.ZodType<any> = z
       )
       .optional(),
     autoupdate: z
-      .union([z.boolean(), z.literal("notify")])
+      .union([z.boolean(), z.literal('notify')])
       .describe(
         "Automatically update to the latest version. Set to true to auto-update, false to disable, or 'notify' to show update notifications",
       )
       .optional(),
     disabled_providers: z
       .array(z.string())
-      .describe("Disable providers that are loaded automatically")
+      .describe('Disable providers that are loaded automatically')
       .optional(),
     enabled_providers: z
       .array(z.string())
       .describe(
-        "When set, ONLY these providers will be enabled. All other providers will be ignored",
+        'When set, ONLY these providers will be enabled. All other providers will be ignored',
       )
       .optional(),
     model: z
       .string()
       .describe(
-        "Model to use in the format of provider/model, eg anthropic/claude-2",
+        'Model to use in the format of provider/model, eg anthropic/claude-2',
       )
       .optional(),
     small_model: z
       .string()
       .describe(
-        "Small model to use for tasks like title generation in the format of provider/model",
+        'Small model to use for tasks like title generation in the format of provider/model',
       )
       .optional(),
     default_agent: z
@@ -126,7 +126,7 @@ export const schema: z.ZodType<any> = z
     username: z
       .string()
       .describe(
-        "Custom username to display in conversations instead of system username",
+        'Custom username to display in conversations instead of system username',
       )
       .optional(),
     mode: z
@@ -150,31 +150,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -183,7 +183,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -200,79 +200,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -297,31 +297,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -330,7 +330,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -347,79 +347,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -446,31 +446,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -479,7 +479,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -496,85 +496,85 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
           .catchall(z.any()),
       )
-      .describe("@deprecated Use `agent` field instead.")
+      .describe('@deprecated Use `agent` field instead.')
       .optional(),
     agent: z
       .object({
@@ -597,31 +597,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -630,7 +630,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -647,79 +647,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -744,31 +744,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -777,7 +777,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -794,79 +794,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -891,31 +891,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -924,7 +924,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -941,79 +941,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -1038,31 +1038,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -1071,7 +1071,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -1088,79 +1088,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -1185,31 +1185,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -1218,7 +1218,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -1235,79 +1235,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -1332,31 +1332,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -1365,7 +1365,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -1382,79 +1382,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -1479,31 +1479,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -1512,7 +1512,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -1529,79 +1529,79 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
@@ -1628,31 +1628,31 @@ export const schema: z.ZodType<any> = z
             disable: z.boolean().optional(),
             description: z
               .string()
-              .describe("Description of when to use the agent")
+              .describe('Description of when to use the agent')
               .optional(),
-            mode: z.enum(["subagent", "primary", "all"]).optional(),
+            mode: z.enum(['subagent', 'primary', 'all']).optional(),
             hidden: z
               .boolean()
               .describe(
-                "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
+                'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)',
               )
               .optional(),
             options: z.record(z.any()).optional(),
             color: z
               .union([
-                z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")),
+                z.string().regex(/^#[0-9a-fA-F]{6}$/),
                 z.enum([
-                  "primary",
-                  "secondary",
-                  "accent",
-                  "success",
-                  "warning",
-                  "error",
-                  "info",
+                  'primary',
+                  'secondary',
+                  'accent',
+                  'success',
+                  'warning',
+                  'error',
+                  'info',
                 ]),
               ])
               .describe(
-                "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
+                'Hex color code (e.g., #FF5733) or theme color (e.g., primary)',
               )
               .optional(),
             steps: z
@@ -1661,7 +1661,7 @@ export const schema: z.ZodType<any> = z
               .gt(0)
               .lte(9007199254740991)
               .describe(
-                "Maximum number of agentic iterations before forcing text-only response",
+                'Maximum number of agentic iterations before forcing text-only response',
               )
               .optional(),
             maxSteps: z
@@ -1678,85 +1678,85 @@ export const schema: z.ZodType<any> = z
                     __originalKeys: z.array(z.string()).optional(),
                     read: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     edit: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     glob: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     grep: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     list: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     bash: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     task: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                     external_directory: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-                    todoread: z.enum(["ask", "allow", "deny"]).optional(),
-                    question: z.enum(["ask", "allow", "deny"]).optional(),
-                    webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-                    websearch: z.enum(["ask", "allow", "deny"]).optional(),
-                    codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+                    todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+                    todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+                    question: z.enum(['ask', 'allow', 'deny']).optional(),
+                    webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+                    codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
                     lsp: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
-                    doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+                    doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
                     skill: z
                       .union([
-                        z.enum(["ask", "allow", "deny"]),
-                        z.record(z.enum(["ask", "allow", "deny"])),
+                        z.enum(['ask', 'allow', 'deny']),
+                        z.record(z.enum(['ask', 'allow', 'deny'])),
                       ])
                       .optional(),
                   })
                   .catchall(
                     z.union([
-                      z.enum(["ask", "allow", "deny"]),
-                      z.record(z.enum(["ask", "allow", "deny"])),
+                      z.enum(['ask', 'allow', 'deny']),
+                      z.record(z.enum(['ask', 'allow', 'deny'])),
                     ]),
                   ),
-                z.enum(["ask", "allow", "deny"]),
+                z.enum(['ask', 'allow', 'deny']),
               ])
               .optional(),
           })
           .catchall(z.any()),
       )
-      .describe("Agent configuration, see https://opencode.ai/docs/agents")
+      .describe('Agent configuration, see https://opencode.ai/docs/agents')
       .optional(),
     provider: z
       .record(
@@ -1785,8 +1785,8 @@ export const schema: z.ZodType<any> = z
                         z
                           .object({
                             field: z.enum([
-                              "reasoning_content",
-                              "reasoning_details",
+                              'reasoning_content',
+                              'reasoning_details',
                             ]),
                           })
                           .strict(),
@@ -1821,16 +1821,16 @@ export const schema: z.ZodType<any> = z
                     modalities: z
                       .object({
                         input: z.array(
-                          z.enum(["text", "audio", "image", "video", "pdf"]),
+                          z.enum(['text', 'audio', 'image', 'video', 'pdf']),
                         ),
                         output: z.array(
-                          z.enum(["text", "audio", "image", "video", "pdf"]),
+                          z.enum(['text', 'audio', 'image', 'video', 'pdf']),
                         ),
                       })
                       .strict()
                       .optional(),
                     experimental: z.boolean().optional(),
-                    status: z.enum(["alpha", "beta", "deprecated"]).optional(),
+                    status: z.enum(['alpha', 'beta', 'deprecated']).optional(),
                     options: z.record(z.any()).optional(),
                     headers: z.record(z.string()).optional(),
                     provider: z
@@ -1846,12 +1846,12 @@ export const schema: z.ZodType<any> = z
                           .object({
                             disabled: z
                               .boolean()
-                              .describe("Disable this variant for the model")
+                              .describe('Disable this variant for the model')
                               .optional(),
                           })
                           .catchall(z.any()),
                       )
-                      .describe("Variant-specific configuration")
+                      .describe('Variant-specific configuration')
                       .optional(),
                   })
                   .strict(),
@@ -1865,12 +1865,12 @@ export const schema: z.ZodType<any> = z
                 baseURL: z.string().optional(),
                 enterpriseUrl: z
                   .string()
-                  .describe("GitHub Enterprise URL for copilot authentication")
+                  .describe('GitHub Enterprise URL for copilot authentication')
                   .optional(),
                 setCacheKey: z
                   .boolean()
                   .describe(
-                    "Enable promptCacheKey for this provider (default false)",
+                    'Enable promptCacheKey for this provider (default false)',
                   )
                   .optional(),
                 timeout: z
@@ -1881,14 +1881,14 @@ export const schema: z.ZodType<any> = z
                       .gt(0)
                       .lte(9007199254740991)
                       .describe(
-                        "Timeout in milliseconds for requests to this provider. Default is 300000 (5 minutes). Set to false to disable timeout.",
+                        'Timeout in milliseconds for requests to this provider. Default is 300000 (5 minutes). Set to false to disable timeout.',
                       ),
                     z
                       .boolean()
-                      .describe("Disable timeout for this provider entirely."),
+                      .describe('Disable timeout for this provider entirely.'),
                   ])
                   .describe(
-                    "Timeout in milliseconds for requests to this provider. Default is 300000 (5 minutes). Set to false to disable timeout.",
+                    'Timeout in milliseconds for requests to this provider. Default is 300000 (5 minutes). Set to false to disable timeout.',
                   )
                   .optional(),
                 chunkTimeout: z
@@ -1897,7 +1897,7 @@ export const schema: z.ZodType<any> = z
                   .gt(0)
                   .lte(9007199254740991)
                   .describe(
-                    "Timeout in milliseconds between streamed SSE chunks for this provider. If no chunk arrives within this window, the request is aborted.",
+                    'Timeout in milliseconds between streamed SSE chunks for this provider. If no chunk arrives within this window, the request is aborted.',
                   )
                   .optional(),
               })
@@ -1906,7 +1906,7 @@ export const schema: z.ZodType<any> = z
           })
           .strict(),
       )
-      .describe("Custom provider configurations and model overrides")
+      .describe('Custom provider configurations and model overrides')
       .optional(),
     mcp: z
       .record(
@@ -1915,20 +1915,20 @@ export const schema: z.ZodType<any> = z
             z
               .object({
                 type: z
-                  .literal("local")
-                  .describe("Type of MCP server connection"),
+                  .literal('local')
+                  .describe('Type of MCP server connection'),
                 command: z
                   .array(z.string())
-                  .describe("Command and arguments to run the MCP server"),
+                  .describe('Command and arguments to run the MCP server'),
                 environment: z
                   .record(z.string())
                   .describe(
-                    "Environment variables to set when running the MCP server",
+                    'Environment variables to set when running the MCP server',
                   )
                   .optional(),
                 enabled: z
                   .boolean()
-                  .describe("Enable or disable the MCP server on startup")
+                  .describe('Enable or disable the MCP server on startup')
                   .optional(),
                 timeout: z
                   .number()
@@ -1936,7 +1936,7 @@ export const schema: z.ZodType<any> = z
                   .gt(0)
                   .lte(9007199254740991)
                   .describe(
-                    "Timeout in ms for MCP server requests. Defaults to 5000 (5 seconds) if not specified.",
+                    'Timeout in ms for MCP server requests. Defaults to 5000 (5 seconds) if not specified.',
                   )
                   .optional(),
               })
@@ -1944,16 +1944,16 @@ export const schema: z.ZodType<any> = z
             z
               .object({
                 type: z
-                  .literal("remote")
-                  .describe("Type of MCP server connection"),
-                url: z.string().describe("URL of the remote MCP server"),
+                  .literal('remote')
+                  .describe('Type of MCP server connection'),
+                url: z.string().describe('URL of the remote MCP server'),
                 enabled: z
                   .boolean()
-                  .describe("Enable or disable the MCP server on startup")
+                  .describe('Enable or disable the MCP server on startup')
                   .optional(),
                 headers: z
                   .record(z.string())
-                  .describe("Headers to send with the request")
+                  .describe('Headers to send with the request')
                   .optional(),
                 oauth: z
                   .union([
@@ -1962,19 +1962,19 @@ export const schema: z.ZodType<any> = z
                         clientId: z
                           .string()
                           .describe(
-                            "OAuth client ID. If not provided, dynamic client registration (RFC 7591) will be attempted.",
+                            'OAuth client ID. If not provided, dynamic client registration (RFC 7591) will be attempted.',
                           )
                           .optional(),
                         clientSecret: z
                           .string()
                           .describe(
-                            "OAuth client secret (if required by the authorization server)",
+                            'OAuth client secret (if required by the authorization server)',
                           )
                           .optional(),
                         scope: z
                           .string()
                           .describe(
-                            "OAuth scopes to request during authorization",
+                            'OAuth scopes to request during authorization',
                           )
                           .optional(),
                       })
@@ -1982,7 +1982,7 @@ export const schema: z.ZodType<any> = z
                     z.boolean(),
                   ])
                   .describe(
-                    "OAuth authentication configuration for the MCP server. Set to false to disable OAuth auto-detection.",
+                    'OAuth authentication configuration for the MCP server. Set to false to disable OAuth auto-detection.',
                   )
                   .optional(),
                 timeout: z
@@ -1991,7 +1991,7 @@ export const schema: z.ZodType<any> = z
                   .gt(0)
                   .lte(9007199254740991)
                   .describe(
-                    "Timeout in ms for MCP server requests. Defaults to 5000 (5 seconds) if not specified.",
+                    'Timeout in ms for MCP server requests. Defaults to 5000 (5 seconds) if not specified.',
                   )
                   .optional(),
               })
@@ -2000,7 +2000,7 @@ export const schema: z.ZodType<any> = z
           z.object({ enabled: z.boolean() }).strict(),
         ]),
       )
-      .describe("MCP (Model Context Protocol) server configurations")
+      .describe('MCP (Model Context Protocol) server configurations')
       .optional(),
     formatter: z
       .union([
@@ -2038,11 +2038,11 @@ export const schema: z.ZodType<any> = z
       .optional(),
     instructions: z
       .array(z.string())
-      .describe("Additional instruction files or patterns to include")
+      .describe('Additional instruction files or patterns to include')
       .optional(),
     layout: z
-      .enum(["auto", "stretch"])
-      .describe("@deprecated Always uses stretch layout.")
+      .enum(['auto', 'stretch'])
+      .describe('@deprecated Always uses stretch layout.')
       .optional(),
     permission: z
       .union([
@@ -2051,85 +2051,85 @@ export const schema: z.ZodType<any> = z
             __originalKeys: z.array(z.string()).optional(),
             read: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
             edit: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
             glob: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
             grep: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
             list: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
             bash: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
             task: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
             external_directory: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
-            todowrite: z.enum(["ask", "allow", "deny"]).optional(),
-            todoread: z.enum(["ask", "allow", "deny"]).optional(),
-            question: z.enum(["ask", "allow", "deny"]).optional(),
-            webfetch: z.enum(["ask", "allow", "deny"]).optional(),
-            websearch: z.enum(["ask", "allow", "deny"]).optional(),
-            codesearch: z.enum(["ask", "allow", "deny"]).optional(),
+            todowrite: z.enum(['ask', 'allow', 'deny']).optional(),
+            todoread: z.enum(['ask', 'allow', 'deny']).optional(),
+            question: z.enum(['ask', 'allow', 'deny']).optional(),
+            webfetch: z.enum(['ask', 'allow', 'deny']).optional(),
+            websearch: z.enum(['ask', 'allow', 'deny']).optional(),
+            codesearch: z.enum(['ask', 'allow', 'deny']).optional(),
             lsp: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
-            doom_loop: z.enum(["ask", "allow", "deny"]).optional(),
+            doom_loop: z.enum(['ask', 'allow', 'deny']).optional(),
             skill: z
               .union([
-                z.enum(["ask", "allow", "deny"]),
-                z.record(z.enum(["ask", "allow", "deny"])),
+                z.enum(['ask', 'allow', 'deny']),
+                z.record(z.enum(['ask', 'allow', 'deny'])),
               ])
               .optional(),
           })
           .catchall(
             z.union([
-              z.enum(["ask", "allow", "deny"]),
-              z.record(z.enum(["ask", "allow", "deny"])),
+              z.enum(['ask', 'allow', 'deny']),
+              z.record(z.enum(['ask', 'allow', 'deny'])),
             ]),
           ),
-        z.enum(["ask", "allow", "deny"]),
+        z.enum(['ask', 'allow', 'deny']),
       ])
       .optional(),
     tools: z.record(z.boolean()).optional(),
     enterprise: z
       .object({
-        url: z.string().describe("Enterprise URL").optional(),
+        url: z.string().describe('Enterprise URL').optional(),
       })
       .strict()
       .optional(),
@@ -2138,12 +2138,12 @@ export const schema: z.ZodType<any> = z
         auto: z
           .boolean()
           .describe(
-            "Enable automatic compaction when context is full (default: true)",
+            'Enable automatic compaction when context is full (default: true)',
           )
           .optional(),
         prune: z
           .boolean()
-          .describe("Enable pruning of old tool outputs (default: true)")
+          .describe('Enable pruning of old tool outputs (default: true)')
           .optional(),
         reserved: z
           .number()
@@ -2151,7 +2151,7 @@ export const schema: z.ZodType<any> = z
           .gte(0)
           .lte(9007199254740991)
           .describe(
-            "Token buffer for compaction. Leaves enough window to avoid overflow during compaction.",
+            'Token buffer for compaction. Leaves enough window to avoid overflow during compaction.',
           )
           .optional(),
       })
@@ -2160,7 +2160,7 @@ export const schema: z.ZodType<any> = z
     experimental: z
       .object({
         disable_paste_summary: z.boolean().optional(),
-        batch_tool: z.boolean().describe("Enable the batch tool").optional(),
+        batch_tool: z.boolean().describe('Enable the batch tool').optional(),
         openTelemetry: z
           .boolean()
           .describe(
@@ -2169,11 +2169,11 @@ export const schema: z.ZodType<any> = z
           .optional(),
         primary_tools: z
           .array(z.string())
-          .describe("Tools that should only be available to primary agents.")
+          .describe('Tools that should only be available to primary agents.')
           .optional(),
         continue_loop_on_deny: z
           .boolean()
-          .describe("Continue the agent loop when a tool call is denied")
+          .describe('Continue the agent loop when a tool call is denied')
           .optional(),
         mcp_timeout: z
           .number()
@@ -2181,7 +2181,7 @@ export const schema: z.ZodType<any> = z
           .gt(0)
           .lte(9007199254740991)
           .describe(
-            "Timeout in milliseconds for model context protocol (MCP) requests",
+            'Timeout in milliseconds for model context protocol (MCP) requests',
           )
           .optional(),
       })

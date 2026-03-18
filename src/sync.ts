@@ -1,11 +1,36 @@
-import { clearCache, readCache, writeCache, isCacheValid, getCachePath } from './cache.js';
 import { fetchModels } from './api.js';
-import { updateModels, readConfig, writeConfig, getGlobalConfigPath, resolveGlobalConfigPath } from './config.js';
+import {
+  clearCache,
+  getCachePath,
+  isCacheValid,
+  readCache,
+  writeCache,
+} from './cache.js';
+import {
+  getGlobalConfigPath,
+  readConfig,
+  resolveGlobalConfigPath,
+  updateModels,
+  writeConfig,
+} from './config.js';
 
-export { clearCache, readCache, writeCache, isCacheValid, getCachePath };
-export { fetchModels, updateModels, readConfig, writeConfig, getGlobalConfigPath, resolveGlobalConfigPath };
+export {
+  clearCache,
+  fetchModels,
+  getCachePath,
+  getGlobalConfigPath,
+  isCacheValid,
+  readCache,
+  readConfig,
+  resolveGlobalConfigPath,
+  updateModels,
+  writeCache,
+  writeConfig,
+};
 
-export async function syncModels(log?: (msg: string) => void): Promise<{ added: number; skipped: number }> {
+export async function syncModels(
+  log?: (msg: string) => void,
+): Promise<{ added: number; skipped: number }> {
   log?.('Starting model sync');
   const result = await fetchModels({ log });
 
@@ -16,6 +41,8 @@ export async function syncModels(log?: (msg: string) => void): Promise<{ added: 
 
   log?.(`Fetched ${result.data.length} models, updating config`);
   const updateResult = await updateModels(result.data, undefined, log);
-  log?.(`Sync complete: added=${updateResult.added}, skipped=${updateResult.skipped}, removed=${updateResult.removed}`);
+  log?.(
+    `Sync complete: added=${updateResult.added}, skipped=${updateResult.skipped}, removed=${updateResult.removed}`,
+  );
   return updateResult;
 }

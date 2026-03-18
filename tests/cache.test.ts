@@ -1,13 +1,13 @@
-import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { promises as fs } from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { promises as fs } from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import {
-  readCache,
-  writeCache,
-  isCacheValid,
   clearCache,
   getCachePath,
+  isCacheValid,
+  readCache,
+  writeCache,
 } from '../src/cache';
 import type { CacheData } from '../src/types';
 
@@ -123,7 +123,10 @@ describe('cache module', () => {
 
       await writeCache(cacheData, testConfig);
 
-      const dirExists = await fs.access(TEST_CACHE_DIR).then(() => true).catch(() => false);
+      const dirExists = await fs
+        .access(TEST_CACHE_DIR)
+        .then(() => true)
+        .catch(() => false);
       expect(dirExists).toBe(true);
     });
   });
@@ -146,7 +149,11 @@ describe('cache module', () => {
     test('returns null when cache has no models array', async () => {
       const cachePath = getCachePath(testConfig);
       await fs.mkdir(TEST_CACHE_DIR, { recursive: true });
-      await fs.writeFile(cachePath, JSON.stringify({ timestamp: Date.now() }), 'utf-8');
+      await fs.writeFile(
+        cachePath,
+        JSON.stringify({ timestamp: Date.now() }),
+        'utf-8',
+      );
 
       const result = await readCache(testConfig);
       expect(result).toBeNull();
@@ -155,7 +162,11 @@ describe('cache module', () => {
     test('returns null when cache has no timestamp', async () => {
       const cachePath = getCachePath(testConfig);
       await fs.mkdir(TEST_CACHE_DIR, { recursive: true });
-      await fs.writeFile(cachePath, JSON.stringify({ models: sampleModels }), 'utf-8');
+      await fs.writeFile(
+        cachePath,
+        JSON.stringify({ models: sampleModels }),
+        'utf-8',
+      );
 
       const result = await readCache(testConfig);
       expect(result).toBeNull();
@@ -171,8 +182,8 @@ describe('cache module', () => {
       const result = await readCache(testConfig);
 
       expect(result).not.toBeNull();
-      expect(result!.models).toHaveLength(1);
-      expect(result!.timestamp).toBe(cacheData.timestamp);
+      expect(result?.models).toHaveLength(1);
+      expect(result?.timestamp).toBe(cacheData.timestamp);
     });
   });
 
@@ -259,14 +270,20 @@ describe('cache module', () => {
       await writeCache(cacheData, testConfig);
 
       const cachePath = getCachePath(testConfig);
-      const fileExistsBefore = await fs.access(cachePath).then(() => true).catch(() => false);
+      const fileExistsBefore = await fs
+        .access(cachePath)
+        .then(() => true)
+        .catch(() => false);
       expect(fileExistsBefore).toBe(true);
 
       // Now clear the cache
       const result = await clearCache(testConfig);
       expect(result).toBe(true);
 
-      const fileExistsAfter = await fs.access(cachePath).then(() => true).catch(() => false);
+      const fileExistsAfter = await fs
+        .access(cachePath)
+        .then(() => true)
+        .catch(() => false);
       expect(fileExistsAfter).toBe(false);
     });
   });
@@ -280,13 +297,13 @@ describe('cache module', () => {
       await fs.writeFile(
         cachePath,
         JSON.stringify({ models: sampleModels, timestamp: oldTimestamp }),
-        'utf-8'
+        'utf-8',
       );
 
       // readCache returns the data regardless of expiration
       const result = await readCache(testConfig);
       expect(result).not.toBeNull();
-      expect(result!.timestamp).toBe(oldTimestamp);
+      expect(result?.timestamp).toBe(oldTimestamp);
 
       // isCacheValid should return false for expired cache
       expect(isCacheValid(result, 1000)).toBe(false);
@@ -304,7 +321,7 @@ describe('cache module', () => {
       // Read
       const readResult = await readCache(testConfig);
       expect(readResult).not.toBeNull();
-      expect(readResult!.models).toHaveLength(1);
+      expect(readResult?.models).toHaveLength(1);
 
       // Check validity
       expect(isCacheValid(readResult, 1000)).toBe(true);

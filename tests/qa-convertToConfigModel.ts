@@ -3,14 +3,18 @@
  * Tests all 4 new fields and edge cases
  */
 
-import { convertToConfigModel, USEFUL_PARAMETERS } from '../src/config.js';
-import type { OpenRouterModel, ConfigModelEntry, DefaultParameters } from '../src/types.js';
+import { convertToConfigModel } from '../src/config.js';
+import type {
+  ConfigModelEntry,
+  DefaultParameters,
+  OpenRouterModel,
+} from '../src/types.js';
 
 // Test Results Tracking
 let testsPassed = 0;
 let testsFailed = 0;
 let fieldsPresent = 0;
-let fieldsAbsent = 0;
+let _fieldsAbsent = 0;
 let valuesCorrect = 0;
 let valuesIncorrect = 0;
 
@@ -23,7 +27,7 @@ interface TestResult {
 
 const results: TestResult[] = [];
 
-function assert(condition: boolean, message: string): void {
+function _assert(condition: boolean, message: string): void {
   if (!condition) {
     throw new Error(message);
   }
@@ -48,45 +52,92 @@ function testFullModel(): TestResult {
         input_modalities: ['text'],
         output_modalities: ['text'],
         tokenizer: 'cl100k_base',
-        instruct_type: 'chat'
+        instruct_type: 'chat',
       },
       pricing: {
         prompt: '0.01',
         completion: '0.02',
-        input_cache_read: '0.005'
+        input_cache_read: '0.005',
       },
       top_provider: {
         context_length: 128000,
         max_completion_tokens: 16384,
-        is_moderated: true
+        is_moderated: true,
       },
       per_request_limits: null,
-      supported_parameters: ['temperature', 'max_tokens', 'tools', 'top_p', 'unknown_param'],
+      supported_parameters: [
+        'temperature',
+        'max_tokens',
+        'tools',
+        'top_p',
+        'unknown_param',
+      ],
       default_parameters: {
         temperature: 0.7,
         top_p: 0.9,
         top_k: null,
         frequency_penalty: null,
         presence_penalty: null,
-        repetition_penalty: null
+        repetition_penalty: null,
       },
-      expiration_date: null
+      expiration_date: null,
     };
 
     const result = convertToConfigModel(mockModel);
 
     // Check all 4 fields are present
-    if ('max_completion_tokens' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: max_completion_tokens'); }
-    if ('supported_parameters' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: supported_parameters'); }
-    if ('default_parameters' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: default_parameters'); }
-    if ('is_moderated' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: is_moderated'); }
+    if ('max_completion_tokens' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: max_completion_tokens');
+    }
+    if ('supported_parameters' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: supported_parameters');
+    }
+    if ('default_parameters' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: default_parameters');
+    }
+    if ('is_moderated' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: is_moderated');
+    }
 
     // Verify values are correct
-    if (result.max_completion_tokens === 16384) valuesCorrect++; else { valuesIncorrect++; errors.push(`max_completion_tokens: expected 16384, got ${result.max_completion_tokens}`); }
-    if (JSON.stringify(result.supported_parameters) === JSON.stringify(['temperature', 'max_tokens', 'tools', 'top_p'])) valuesCorrect++; else { valuesIncorrect++; errors.push(`supported_parameters: expected filtered list, got ${JSON.stringify(result.supported_parameters)}`); }
-    if (result.is_moderated === true) valuesCorrect++; else { valuesIncorrect++; errors.push(`is_moderated: expected true, got ${result.is_moderated}`); }
+    if (result.max_completion_tokens === 16384) valuesCorrect++;
+    else {
+      valuesIncorrect++;
+      errors.push(
+        `max_completion_tokens: expected 16384, got ${result.max_completion_tokens}`,
+      );
+    }
+    if (
+      JSON.stringify(result.supported_parameters) ===
+      JSON.stringify(['temperature', 'max_tokens', 'tools', 'top_p'])
+    )
+      valuesCorrect++;
+    else {
+      valuesIncorrect++;
+      errors.push(
+        `supported_parameters: expected filtered list, got ${JSON.stringify(result.supported_parameters)}`,
+      );
+    }
+    if (result.is_moderated === true) valuesCorrect++;
+    else {
+      valuesIncorrect++;
+      errors.push(`is_moderated: expected true, got ${result.is_moderated}`);
+    }
 
-    return { name: testName, passed: errors.length === 0, errors, output: result };
+    return {
+      name: testName,
+      passed: errors.length === 0,
+      errors,
+      output: result,
+    };
   } catch (e) {
     errors.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
     return { name: testName, passed: false, errors, output: null };
@@ -112,12 +163,12 @@ function testTopProviderUndefined(): TestResult {
         input_modalities: ['text'],
         output_modalities: ['text'],
         tokenizer: 'cl100k_base',
-        instruct_type: 'chat'
+        instruct_type: 'chat',
       },
       pricing: {
         prompt: '0.01',
         completion: '0.02',
-        input_cache_read: '0.005'
+        input_cache_read: '0.005',
       },
       top_provider: undefined as any,
       per_request_limits: null,
@@ -128,18 +179,35 @@ function testTopProviderUndefined(): TestResult {
         top_k: null,
         frequency_penalty: null,
         presence_penalty: null,
-        repetition_penalty: null
+        repetition_penalty: null,
       },
-      expiration_date: null
+      expiration_date: null,
     };
 
     const result = convertToConfigModel(mockModel);
 
     // Fields should be absent when top_provider is undefined
-    if (!('max_completion_tokens' in result)) { fieldsPresent += 0; } else { fieldsAbsent += 0; errors.push('Should NOT have max_completion_tokens when top_provider undefined'); }
-    if (!('is_moderated' in result)) { fieldsPresent += 0; } else { fieldsAbsent += 0; errors.push('Should NOT have is_moderated when top_provider undefined'); }
+    if (!('max_completion_tokens' in result)) {
+      fieldsPresent += 0;
+    } else {
+      _fieldsAbsent += 0;
+      errors.push(
+        'Should NOT have max_completion_tokens when top_provider undefined',
+      );
+    }
+    if (!('is_moderated' in result)) {
+      fieldsPresent += 0;
+    } else {
+      _fieldsAbsent += 0;
+      errors.push('Should NOT have is_moderated when top_provider undefined');
+    }
 
-    return { name: testName, passed: errors.length === 0, errors, output: result };
+    return {
+      name: testName,
+      passed: errors.length === 0,
+      errors,
+      output: result,
+    };
   } catch (e) {
     errors.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
     return { name: testName, passed: false, errors, output: null };
@@ -165,17 +233,17 @@ function testSupportedParamsUndefined(): TestResult {
         input_modalities: ['text'],
         output_modalities: ['text'],
         tokenizer: 'cl100k_base',
-        instruct_type: 'chat'
+        instruct_type: 'chat',
       },
       pricing: {
         prompt: '0.01',
         completion: '0.02',
-        input_cache_read: '0.005'
+        input_cache_read: '0.005',
       },
       top_provider: {
         context_length: 128000,
         max_completion_tokens: 4096,
-        is_moderated: false
+        is_moderated: false,
       },
       per_request_limits: null,
       supported_parameters: undefined as any,
@@ -185,22 +253,44 @@ function testSupportedParamsUndefined(): TestResult {
         top_k: null,
         frequency_penalty: null,
         presence_penalty: null,
-        repetition_penalty: null
+        repetition_penalty: null,
       },
-      expiration_date: null
+      expiration_date: null,
     };
 
     const result = convertToConfigModel(mockModel);
 
     // supported_parameters should be absent when undefined
-    if (!('supported_parameters' in result)) { fieldsPresent += 0; } else { fieldsAbsent += 0; errors.push('Should NOT have supported_parameters when undefined'); }
+    if (!('supported_parameters' in result)) {
+      fieldsPresent += 0;
+    } else {
+      _fieldsAbsent += 0;
+      errors.push('Should NOT have supported_parameters when undefined');
+    }
 
     // Other fields should still be present
-    if ('max_completion_tokens' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: max_completion_tokens'); }
-    if ('is_moderated' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: is_moderated'); }
-    if ('default_parameters' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: default_parameters'); }
+    if ('max_completion_tokens' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: max_completion_tokens');
+    }
+    if ('is_moderated' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: is_moderated');
+    }
+    if ('default_parameters' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: default_parameters');
+    }
 
-    return { name: testName, passed: errors.length === 0, errors, output: result };
+    return {
+      name: testName,
+      passed: errors.length === 0,
+      errors,
+      output: result,
+    };
   } catch (e) {
     errors.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
     return { name: testName, passed: false, errors, output: null };
@@ -226,37 +316,51 @@ function testSupportedParamsEmptyAfterFilter(): TestResult {
         input_modalities: ['text'],
         output_modalities: ['text'],
         tokenizer: 'cl100k_base',
-        instruct_type: 'chat'
+        instruct_type: 'chat',
       },
       pricing: {
         prompt: '0.01',
         completion: '0.02',
-        input_cache_read: '0.005'
+        input_cache_read: '0.005',
       },
       top_provider: {
         context_length: 128000,
         max_completion_tokens: 4096,
-        is_moderated: false
+        is_moderated: false,
       },
       per_request_limits: null,
-      supported_parameters: ['useless_param1', 'useless_param2', 'another_useless'],
+      supported_parameters: [
+        'useless_param1',
+        'useless_param2',
+        'another_useless',
+      ],
       default_parameters: {
         temperature: 0.5,
         top_p: null,
         top_k: null,
         frequency_penalty: null,
         presence_penalty: null,
-        repetition_penalty: null
+        repetition_penalty: null,
       },
-      expiration_date: null
+      expiration_date: null,
     };
 
     const result = convertToConfigModel(mockModel);
 
     // supported_parameters should be absent when all params are filtered out
-    if (!('supported_parameters' in result)) { fieldsPresent += 0; } else { fieldsAbsent += 0; errors.push('Should NOT have supported_parameters when all filtered out'); }
+    if (!('supported_parameters' in result)) {
+      fieldsPresent += 0;
+    } else {
+      _fieldsAbsent += 0;
+      errors.push('Should NOT have supported_parameters when all filtered out');
+    }
 
-    return { name: testName, passed: errors.length === 0, errors, output: result };
+    return {
+      name: testName,
+      passed: errors.length === 0,
+      errors,
+      output: result,
+    };
   } catch (e) {
     errors.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
     return { name: testName, passed: false, errors, output: null };
@@ -282,35 +386,57 @@ function testDefaultParamsUndefined(): TestResult {
         input_modalities: ['text'],
         output_modalities: ['text'],
         tokenizer: 'cl100k_base',
-        instruct_type: 'chat'
+        instruct_type: 'chat',
       },
       pricing: {
         prompt: '0.01',
         completion: '0.02',
-        input_cache_read: '0.005'
+        input_cache_read: '0.005',
       },
       top_provider: {
         context_length: 128000,
         max_completion_tokens: 4096,
-        is_moderated: false
+        is_moderated: false,
       },
       per_request_limits: null,
       supported_parameters: ['temperature'],
       default_parameters: undefined as any,
-      expiration_date: null
+      expiration_date: null,
     };
 
     const result = convertToConfigModel(mockModel);
 
     // default_parameters should be absent when undefined
-    if (!('default_parameters' in result)) { fieldsPresent += 0; } else { fieldsAbsent += 0; errors.push('Should NOT have default_parameters when undefined'); }
+    if (!('default_parameters' in result)) {
+      fieldsPresent += 0;
+    } else {
+      _fieldsAbsent += 0;
+      errors.push('Should NOT have default_parameters when undefined');
+    }
 
     // Other fields should still be present
-    if ('max_completion_tokens' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: max_completion_tokens'); }
-    if ('supported_parameters' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: supported_parameters'); }
-    if ('is_moderated' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: is_moderated'); }
+    if ('max_completion_tokens' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: max_completion_tokens');
+    }
+    if ('supported_parameters' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: supported_parameters');
+    }
+    if ('is_moderated' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: is_moderated');
+    }
 
-    return { name: testName, passed: errors.length === 0, errors, output: result };
+    return {
+      name: testName,
+      passed: errors.length === 0,
+      errors,
+      output: result,
+    };
   } catch (e) {
     errors.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
     return { name: testName, passed: false, errors, output: null };
@@ -336,17 +462,17 @@ function testDefaultParamsWithNulls(): TestResult {
         input_modalities: ['text'],
         output_modalities: ['text'],
         tokenizer: 'cl100k_base',
-        instruct_type: 'chat'
+        instruct_type: 'chat',
       },
       pricing: {
         prompt: '0.01',
         completion: '0.02',
-        input_cache_read: '0.005'
+        input_cache_read: '0.005',
       },
       top_provider: {
         context_length: 128000,
         max_completion_tokens: 4096,
-        is_moderated: false
+        is_moderated: false,
       },
       per_request_limits: null,
       supported_parameters: ['temperature'],
@@ -356,31 +482,49 @@ function testDefaultParamsWithNulls(): TestResult {
         top_k: null,
         frequency_penalty: null,
         presence_penalty: null,
-        repetition_penalty: null
+        repetition_penalty: null,
       },
-      expiration_date: null
+      expiration_date: null,
     };
 
     const result = convertToConfigModel(mockModel);
 
     // default_parameters should be present even with null values (pass-through)
-    if ('default_parameters' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: default_parameters'); }
+    if ('default_parameters' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: default_parameters');
+    }
 
     // Verify nulls are preserved
     const dp = result.default_parameters;
     if (dp) {
-      const nullFields = ['temperature', 'top_p', 'top_k', 'frequency_penalty', 'presence_penalty', 'repetition_penalty'];
+      const nullFields = [
+        'temperature',
+        'top_p',
+        'top_k',
+        'frequency_penalty',
+        'presence_penalty',
+        'repetition_penalty',
+      ];
       for (const field of nullFields) {
         if (dp[field as keyof DefaultParameters] !== null) {
           valuesIncorrect++;
-          errors.push(`default_parameters.${field}: expected null, got ${dp[field as keyof DefaultParameters]}`);
+          errors.push(
+            `default_parameters.${field}: expected null, got ${dp[field as keyof DefaultParameters]}`,
+          );
         } else {
           valuesCorrect++;
         }
       }
     }
 
-    return { name: testName, passed: errors.length === 0, errors, output: result };
+    return {
+      name: testName,
+      passed: errors.length === 0,
+      errors,
+      output: result,
+    };
   } catch (e) {
     errors.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
     return { name: testName, passed: false, errors, output: null };
@@ -406,17 +550,17 @@ function testMaxCompletionTokensZero(): TestResult {
         input_modalities: ['text'],
         output_modalities: ['text'],
         tokenizer: 'cl100k_base',
-        instruct_type: 'chat'
+        instruct_type: 'chat',
       },
       pricing: {
         prompt: '0.01',
         completion: '0.02',
-        input_cache_read: '0.005'
+        input_cache_read: '0.005',
       },
       top_provider: {
         context_length: 128000,
         max_completion_tokens: 0,
-        is_moderated: false
+        is_moderated: false,
       },
       per_request_limits: null,
       supported_parameters: ['temperature'],
@@ -426,17 +570,29 @@ function testMaxCompletionTokensZero(): TestResult {
         top_k: null,
         frequency_penalty: null,
         presence_penalty: null,
-        repetition_penalty: null
+        repetition_penalty: null,
       },
-      expiration_date: null
+      expiration_date: null,
     };
 
     const result = convertToConfigModel(mockModel);
 
     // max_completion_tokens should be absent when 0 (falsy value)
-    if (!('max_completion_tokens' in result)) { fieldsPresent += 0; } else { fieldsAbsent += 0; errors.push('Should NOT have max_completion_tokens when value is 0 (falsy)'); }
+    if (!('max_completion_tokens' in result)) {
+      fieldsPresent += 0;
+    } else {
+      _fieldsAbsent += 0;
+      errors.push(
+        'Should NOT have max_completion_tokens when value is 0 (falsy)',
+      );
+    }
 
-    return { name: testName, passed: errors.length === 0, errors, output: result };
+    return {
+      name: testName,
+      passed: errors.length === 0,
+      errors,
+      output: result,
+    };
   } catch (e) {
     errors.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
     return { name: testName, passed: false, errors, output: null };
@@ -462,17 +618,17 @@ function testIsModeratedFalse(): TestResult {
         input_modalities: ['text'],
         output_modalities: ['text'],
         tokenizer: 'cl100k_base',
-        instruct_type: 'chat'
+        instruct_type: 'chat',
       },
       pricing: {
         prompt: '0.01',
         completion: '0.02',
-        input_cache_read: '0.005'
+        input_cache_read: '0.005',
       },
       top_provider: {
         context_length: 128000,
         max_completion_tokens: 4096,
-        is_moderated: false
+        is_moderated: false,
       },
       per_request_limits: null,
       supported_parameters: ['temperature'],
@@ -482,18 +638,31 @@ function testIsModeratedFalse(): TestResult {
         top_k: null,
         frequency_penalty: null,
         presence_penalty: null,
-        repetition_penalty: null
+        repetition_penalty: null,
       },
-      expiration_date: null
+      expiration_date: null,
     };
 
     const result = convertToConfigModel(mockModel);
 
     // is_moderated should be present even when false
-    if ('is_moderated' in result) fieldsPresent++; else { fieldsAbsent++; errors.push('Missing: is_moderated should be present even when false'); }
-    if (result.is_moderated === false) valuesCorrect++; else { valuesIncorrect++; errors.push(`is_moderated: expected false, got ${result.is_moderated}`); }
+    if ('is_moderated' in result) fieldsPresent++;
+    else {
+      _fieldsAbsent++;
+      errors.push('Missing: is_moderated should be present even when false');
+    }
+    if (result.is_moderated === false) valuesCorrect++;
+    else {
+      valuesIncorrect++;
+      errors.push(`is_moderated: expected false, got ${result.is_moderated}`);
+    }
 
-    return { name: testName, passed: errors.length === 0, errors, output: result };
+    return {
+      name: testName,
+      passed: errors.length === 0,
+      errors,
+      output: result,
+    };
   } catch (e) {
     errors.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
     return { name: testName, passed: false, errors, output: null };
@@ -509,7 +678,7 @@ function runTests() {
 
   // Reset counters for fields check
   fieldsPresent = 0;
-  fieldsAbsent = 0;
+  _fieldsAbsent = 0;
   valuesCorrect = 0;
   valuesIncorrect = 0;
 
@@ -521,7 +690,7 @@ function runTests() {
     testDefaultParamsUndefined,
     testDefaultParamsWithNulls,
     testMaxCompletionTokensZero,
-    testIsModeratedFalse
+    testIsModeratedFalse,
   ];
 
   for (const testFn of testFunctions) {
@@ -540,7 +709,9 @@ function runTests() {
     }
 
     if (result.output) {
-      console.log(`   Output: ${JSON.stringify(result.output, null, 2).split('\n').join('\n   ')}`);
+      console.log(
+        `   Output: ${JSON.stringify(result.output, null, 2).split('\n').join('\n   ')}`,
+      );
     }
     console.log();
   }
@@ -550,13 +721,21 @@ function runTests() {
   console.log('QA SUMMARY');
   console.log('='.repeat(80));
   console.log(`Fields Present:     ${fieldsPresent}/4 (in full model test)`);
-  console.log(`Values Correct:     ${valuesCorrect}/${valuesCorrect + valuesIncorrect}`);
-  console.log(`Edge Cases Passed:  ${testsPassed - 1}/${testFunctions.length - 1}`);
-  console.log(`Total Tests:        ${testsPassed}/${testsPassed + testsFailed} passed`);
+  console.log(
+    `Values Correct:     ${valuesCorrect}/${valuesCorrect + valuesIncorrect}`,
+  );
+  console.log(
+    `Edge Cases Passed:  ${testsPassed - 1}/${testFunctions.length - 1}`,
+  );
+  console.log(
+    `Total Tests:        ${testsPassed}/${testsPassed + testsFailed} passed`,
+  );
   console.log();
 
   const verdict = testsFailed === 0 ? 'PASS ✅' : 'FAIL ❌';
-  console.log(`Fields [${fieldsPresent >= 4 ? 4 : fieldsPresent}/4 present] | Values [${valuesCorrect >= 3 ? 'correct' : 'incorrect'}] | Edge Cases [${testsPassed - 1}/${testFunctions.length - 1} passed] | VERDICT: ${verdict}`);
+  console.log(
+    `Fields [${fieldsPresent >= 4 ? 4 : fieldsPresent}/4 present] | Values [${valuesCorrect >= 3 ? 'correct' : 'incorrect'}] | Edge Cases [${testsPassed - 1}/${testFunctions.length - 1} passed] | VERDICT: ${verdict}`,
+  );
   console.log('='.repeat(80));
 
   process.exit(testsFailed > 0 ? 1 : 0);

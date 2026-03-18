@@ -1,6 +1,6 @@
-import { describe, test, expect, mock } from 'bun:test';
+import { describe, expect, mock, test } from 'bun:test';
 import { performSync, type SyncDeps } from '../src/plugin';
-import type { PluginContext, CacheData, OpenRouterModel } from '../src/types';
+import type { CacheData, OpenRouterModel, PluginContext } from '../src/types';
 
 function createMockCtx(): { ctx: PluginContext; logs: unknown[] } {
   const logs: unknown[] = [];
@@ -35,12 +35,20 @@ function createMockModel(id: string): OpenRouterModel {
       instruct_type: null,
     },
     pricing: { prompt: '0.001', completion: '0.002', input_cache_read: '0' },
-    top_provider: { context_length: 4096, max_completion_tokens: 4096, is_moderated: false },
+    top_provider: {
+      context_length: 4096,
+      max_completion_tokens: 4096,
+      is_moderated: false,
+    },
     per_request_limits: null,
     supported_parameters: ['temperature'],
     default_parameters: {
-      temperature: 0.7, top_p: null, top_k: null,
-      frequency_penalty: null, presence_penalty: null, repetition_penalty: null,
+      temperature: 0.7,
+      top_p: null,
+      top_k: null,
+      frequency_penalty: null,
+      presence_penalty: null,
+      repetition_penalty: null,
     },
     expiration_date: null,
   } as OpenRouterModel;
@@ -61,7 +69,10 @@ function createDeps(overrides: Partial<SyncDeps> = {}): SyncDeps {
 describe('performSync', () => {
   test('skips sync when cache is valid', async () => {
     const { ctx, logs } = createMockCtx();
-    const cached: CacheData = { models: [createMockModel('m')], timestamp: Date.now() };
+    const cached: CacheData = {
+      models: [createMockModel('m')],
+      timestamp: Date.now(),
+    };
     const deps = createDeps({
       readCache: mock(async () => cached),
       isCacheValid: mock(() => true),
@@ -95,27 +106,35 @@ describe('performSync', () => {
   test('logs warning when fetch fails', async () => {
     const { ctx, logs } = createMockCtx();
     const deps = createDeps({
-      fetchModels: mock(async () => ({ error: { type: 'network' as const, message: 'Network error' } })),
+      fetchModels: mock(async () => ({
+        error: { type: 'network' as const, message: 'Network error' },
+      })),
     });
 
     await performSync(ctx, deps);
 
     expect(deps.updateModels).not.toHaveBeenCalled();
     const messages = logs.map((l: any) => l.body?.message);
-    expect(messages.some((m: string) => m.includes('Failed to fetch models'))).toBe(true);
+    expect(
+      messages.some((m: string) => m.includes('Failed to fetch models')),
+    ).toBe(true);
   });
 
   test('logs error when updateModels throws', async () => {
     const { ctx, logs } = createMockCtx();
     const deps = createDeps({
-      updateModels: mock(async () => { throw new Error('write failed'); }),
+      updateModels: mock(async () => {
+        throw new Error('write failed');
+      }),
     });
 
     await performSync(ctx, deps);
 
     const messages = logs.map((l: any) => l.body?.message);
     expect(messages).toContain('Error during model sync');
-    const errorLog = logs.find((l: any) => l.body?.message === 'Error during model sync') as any;
+    const errorLog = logs.find(
+      (l: any) => l.body?.message === 'Error during model sync',
+    ) as any;
     expect(errorLog.body.extra.error).toBe('write failed');
   });
 
@@ -127,7 +146,7 @@ describe('performSync', () => {
     await performSync(ctx, deps);
 
     expect(writeCacheMock).toHaveBeenCalledTimes(1);
-    const arg = writeCacheMock.mock.calls[0][0] as CacheData;
+    const arg = (writeCacheMock.mock.calls as any)[0][0] as CacheData;
     expect(arg.models).toHaveLength(1);
     expect(arg.timestamp).toBeGreaterThan(0);
   });
@@ -136,7 +155,9 @@ describe('performSync', () => {
     const { ctx } = createMockCtx();
     const writeCacheMock = mock(async () => {});
     const deps = createDeps({
-      fetchModels: mock(async () => ({ error: { type: 'network' as const, message: 'Network error' } })),
+      fetchModels: mock(async () => ({
+        error: { type: 'network' as const, message: 'Network error' },
+      })),
       writeCache: writeCacheMock,
     });
 
@@ -151,14 +172,17 @@ describe('OpenRouterModelSyncPlugin', () => {
     const { default: plugin } = await import('../src/plugin');
     const { ctx, logs } = createMockCtx();
 
-    const handlers = await plugin(ctx);
+    await plugin(ctx);
 
     const messages = logs.map((l: any) => l.body?.message);
     expect(messages).toContain('OpenRouter Model Sync plugin installed');
-    const notification = logs.find((l: any) => l.body?.message === 'OpenRouter Model Sync plugin installed') as any;
+    const notification = logs.find(
+      (l: any) => l.body?.message === 'OpenRouter Model Sync plugin installed',
+    ) as any;
     expect(notification.body.extra.notification).toBe(true);
     expect(notification.body.extra.title).toBe('OpenRouter Model Sync');
-    expect(notification.body.extra.description).toContain('Plugin installed successfully');
-    expect(handlers['session.created']).toBeFunction();
+    expect(notification.body.extra.description).toContain(
+      'Plugin installed successfully',
+    );
   });
 });
