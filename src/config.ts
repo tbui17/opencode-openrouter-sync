@@ -2,11 +2,11 @@
  * Config utilities for OpenRouter Model Sync Plugin
  */
 
-import { mkdir, readFile, writeFile, access } from 'fs/promises';
-import { homedir } from 'os';
-import { dirname, join } from 'path';
-import type { OpenCodeModelEntry, OpenRouterModel } from './types.js';
-import { stripJsonComments } from './jsonc.js';
+import { mkdir, readFile, writeFile, access } from "fs/promises";
+import { homedir } from "os";
+import { dirname, join } from "node:path";
+import type { OpenCodeModelEntry, OpenRouterModel } from "./types.js";
+import { stripJsonComments } from "./jsonc.js";
 
 /**
  * Default configuration structure
@@ -14,9 +14,9 @@ import { stripJsonComments } from './jsonc.js';
 const DEFAULT_CONFIG: Record<string, unknown> = {
   provider: {
     openrouter: {
-      models: {}
-    }
-  }
+      models: {},
+    },
+  },
 };
 
 /**
@@ -28,7 +28,7 @@ export function getGlobalConfigPath(customPath?: string): string {
   if (customPath) {
     return customPath;
   }
-  return join(homedir(), '.config', 'opencode', 'opencode.json');
+  return join(homedir(), ".config", "opencode", "opencode.json");
 }
 
 /**
@@ -48,18 +48,21 @@ async function fileExists(path: string): Promise<boolean> {
  * @param customPath - Optional custom path (returned as-is if provided)
  * @returns Resolved path to the config file
  */
-export async function resolveGlobalConfigPath(customPath?: string): Promise<string> {
+export async function resolveGlobalConfigPath(
+  customPath?: string,
+): Promise<string> {
   if (customPath) {
     return customPath;
   }
 
   // Check for OPENCODE_CONFIG_DIR env var (used by E2E tests and custom installs)
-  const configDir = process.env.OPENCODE_CONFIG_DIR ?? join(homedir(), '.config', 'opencode');
-  const jsoncPath = join(configDir, 'opencode.jsonc');
+  const configDir =
+    process.env.OPENCODE_CONFIG_DIR ?? join(homedir(), ".config", "opencode");
+  const jsoncPath = join(configDir, "opencode.jsonc");
   if (await fileExists(jsoncPath)) {
     return jsoncPath;
   }
-  return join(configDir, 'opencode.json');
+  return join(configDir, "opencode.json");
 }
 
 /**
@@ -71,9 +74,9 @@ export async function resolveGlobalConfigPath(customPath?: string): Promise<stri
  */
 export async function readConfig(
   configPath?: string,
-  log?: (msg: string) => void
+  log?: (msg: string) => void,
 ): Promise<Record<string, unknown> | null> {
-  const path = configPath ?? await resolveGlobalConfigPath();
+  const path = configPath ?? (await resolveGlobalConfigPath());
   log?.(`Reading config from ${path}`);
 
   try {
@@ -84,29 +87,31 @@ export async function readConfig(
       return { ...DEFAULT_CONFIG };
     }
 
-    const content = await readFile(path, 'utf-8');
+    const content = await readFile(path, "utf-8");
     const stripped = stripJsonComments(content);
     const parsed = JSON.parse(stripped) as Record<string, unknown>;
 
     // Ensure provider.openrouter.models exists
     if (!parsed.provider) {
-      log?.('Config missing provider section, initializing');
+      log?.("Config missing provider section, initializing");
       parsed.provider = {};
     }
     const provider = parsed.provider as Record<string, unknown>;
 
     if (!provider.openrouter) {
-      log?.('Config missing provider.openrouter section, initializing');
+      log?.("Config missing provider.openrouter section, initializing");
       provider.openrouter = {};
     }
     const openrouter = provider.openrouter as Record<string, unknown>;
 
-    if (!openrouter.models || typeof openrouter.models !== 'object') {
-      log?.('Config missing provider.openrouter.models section, initializing');
+    if (!openrouter.models || typeof openrouter.models !== "object") {
+      log?.("Config missing provider.openrouter.models section, initializing");
       openrouter.models = {};
     }
 
-    const modelCount = Object.keys(openrouter.models as Record<string, unknown>).length;
+    const modelCount = Object.keys(
+      openrouter.models as Record<string, unknown>,
+    ).length;
     log?.(`Config loaded successfully (${modelCount} existing models)`);
     return parsed;
   } catch (error) {
@@ -114,7 +119,9 @@ export async function readConfig(
       log?.(`Malformed JSON in config file: ${path}`);
       return null;
     }
-    log?.(`Error reading config file: ${error instanceof Error ? error.message : String(error)}`);
+    log?.(
+      `Error reading config file: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return null;
   }
 }
@@ -131,9 +138,9 @@ export async function writeConfig(
   config: Record<string, unknown>,
   configPath?: string,
   log?: (msg: string) => void,
-  options?: { merge?: boolean }
+  options?: { merge?: boolean },
 ): Promise<boolean> {
-  const path = configPath ?? await resolveGlobalConfigPath();
+  const path = configPath ?? (await resolveGlobalConfigPath());
   const shouldMerge = options?.merge !== false; // default true for backward compat
   log?.(`Writing config to ${path} (merge: ${shouldMerge})`);
 
@@ -148,11 +155,11 @@ export async function writeConfig(
       // Read existing config to merge (if it exists and is valid)
       const existing = await readConfig(configPath, log);
       if (existing) {
-        log?.('Merging with existing config');
+        log?.("Merging with existing config");
         // Deep merge: existing config takes precedence, new values are added
         finalConfig = deepMerge(existing, config);
       } else {
-        log?.('No existing config to merge, using provided config as-is');
+        log?.("No existing config to merge, using provided config as-is");
         finalConfig = config;
       }
     } else {
@@ -161,12 +168,14 @@ export async function writeConfig(
 
     // Write with pretty formatting (2-space indent)
     const content = JSON.stringify(finalConfig, null, 2);
-    await writeFile(path, content, 'utf-8');
+    await writeFile(path, content, "utf-8");
     log?.(`Config written successfully (${content.length} bytes)`);
 
     return true;
   } catch (error) {
-    log?.(`Error writing config file: ${error instanceof Error ? error.message : String(error)}`);
+    log?.(
+      `Error writing config file: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return false;
   }
 }
@@ -178,7 +187,7 @@ export async function writeConfig(
  */
 function deepMerge(
   target: Record<string, unknown>,
-  source: Record<string, unknown>
+  source: Record<string, unknown>,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = { ...target };
 
@@ -188,16 +197,16 @@ function deepMerge(
       const sourceValue = source[key];
 
       if (
-        typeof targetValue === 'object' &&
+        typeof targetValue === "object" &&
         targetValue !== null &&
         !Array.isArray(targetValue) &&
-        typeof sourceValue === 'object' &&
+        typeof sourceValue === "object" &&
         sourceValue !== null &&
         !Array.isArray(sourceValue)
       ) {
         result[key] = deepMerge(
           targetValue as Record<string, unknown>,
-          sourceValue as Record<string, unknown>
+          sourceValue as Record<string, unknown>,
         );
       }
     } else {
@@ -212,7 +221,9 @@ function deepMerge(
  * Convert OpenRouter model to OpenCode model entry
  * Produces fields matching OpenCode's ModelsDev.Model schema
  */
-export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry {
+export function convertToConfigModel(
+  model: OpenRouterModel,
+): OpenCodeModelEntry {
   const entry: OpenCodeModelEntry = {};
 
   if (model.name) {
@@ -225,7 +236,7 @@ export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry
     const output = parseFloat(model.pricing.completion);
     const cacheRead = parseFloat(model.pricing.input_cache_read);
 
-    const cost: OpenCodeModelEntry['cost'] = {};
+    const cost: OpenCodeModelEntry["cost"] = {};
     if (!isNaN(input)) cost.input = input;
     if (!isNaN(output)) cost.output = output;
     if (!isNaN(cacheRead)) cost.cache_read = cacheRead;
@@ -247,10 +258,14 @@ export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry
   // modalities from architecture
   // OpenCode schema only allows: text, audio, image, video, pdf
   // Schema requires both input and output when modalities is present
-  const VALID_MODALITIES = new Set(['text', 'audio', 'image', 'video', 'pdf']);
+  const VALID_MODALITIES = new Set(["text", "audio", "image", "video", "pdf"]);
   if (model.architecture) {
-    const inputFiltered = model.architecture.input_modalities?.filter(m => VALID_MODALITIES.has(m));
-    const outputFiltered = model.architecture.output_modalities?.filter(m => VALID_MODALITIES.has(m));
+    const inputFiltered = model.architecture.input_modalities?.filter((m) =>
+      VALID_MODALITIES.has(m),
+    );
+    const outputFiltered = model.architecture.output_modalities?.filter((m) =>
+      VALID_MODALITIES.has(m),
+    );
     if (inputFiltered?.length && outputFiltered?.length) {
       entry.modalities = { input: inputFiltered, output: outputFiltered };
     }
@@ -260,13 +275,13 @@ export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry
   if (model.supported_parameters?.length) {
     const params = model.supported_parameters;
 
-    if (params.includes('temperature')) {
+    if (params.includes("temperature")) {
       entry.temperature = true;
     }
-    if (params.includes('tools') || params.includes('tool_choice')) {
+    if (params.includes("tools") || params.includes("tool_choice")) {
       entry.tool_call = true;
     }
-    if (params.includes('reasoning') || params.includes('reasoning_effort')) {
+    if (params.includes("reasoning") || params.includes("reasoning_effort")) {
       entry.reasoning = true;
     }
   }
@@ -274,7 +289,7 @@ export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry
   // attachment: input modalities contain image or pdf
   if (model.architecture?.input_modalities?.length) {
     const inputs = model.architecture.input_modalities;
-    if (inputs.includes('image') || inputs.includes('pdf')) {
+    if (inputs.includes("image") || inputs.includes("pdf")) {
       entry.attachment = true;
     }
   }
@@ -290,13 +305,13 @@ export function convertToConfigModel(model: OpenRouterModel): OpenCodeModelEntry
 export async function updateModels(
   models: OpenRouterModel[],
   configPath?: string,
-  log?: (msg: string) => void
+  log?: (msg: string) => void,
 ): Promise<{ added: number; skipped: number; removed: number }> {
   log?.(`Updating models (${models.length} models from API)`);
   const config = await readConfig(configPath, log);
 
   if (!config) {
-    log?.('Failed to read config, cannot update models');
+    log?.("Failed to read config, cannot update models");
     return { added: 0, skipped: 0, removed: 0 };
   }
 
@@ -311,13 +326,13 @@ export async function updateModels(
   }
   const openrouter = provider.openrouter as Record<string, unknown>;
 
-  if (!openrouter.models || typeof openrouter.models !== 'object') {
+  if (!openrouter.models || typeof openrouter.models !== "object") {
     openrouter.models = {};
   }
   const existingModels = openrouter.models as Record<string, unknown>;
 
   // Build a set of valid model IDs from the API response
-  const apiModelIds = new Set(models.map(m => m.id).filter(Boolean));
+  const apiModelIds = new Set(models.map((m) => m.id).filter(Boolean));
 
   let added = 0;
   let skipped = 0;
@@ -335,7 +350,7 @@ export async function updateModels(
   // Add new models
   for (const model of models) {
     if (!model.id) {
-      log?.('Skipping model without ID');
+      log?.("Skipping model without ID");
       skipped++;
       continue;
     }
@@ -355,7 +370,7 @@ export async function updateModels(
   const success = await writeConfig(config, configPath, log, { merge: false });
 
   if (!success) {
-    log?.('Failed to write config after updating models');
+    log?.("Failed to write config after updating models");
     return { added: 0, skipped: models.length, removed: 0 };
   }
 

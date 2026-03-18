@@ -5,7 +5,12 @@
  * to the global OpenCode configuration. It runs once per 24 hours on startup.
  */
 
-import type { PluginContext, CacheData, OpenRouterModel, FetchResult } from "./types.js";
+import type {
+  PluginContext,
+  CacheData,
+  OpenRouterModel,
+  FetchResult,
+} from "./types.js";
 import { readCache, writeCache, isCacheValid } from "./cache.js";
 import { fetchModels, type FetchModelsOptions } from "./api.js";
 import { readConfig, updateModels } from "./config.js";
@@ -16,14 +21,20 @@ const SERVICE_NAME = "openrouter-sync";
 export interface SyncDeps {
   readCache: (log?: (msg: string) => void) => Promise<CacheData | null>;
   writeCache: (data: CacheData, log?: (msg: string) => void) => Promise<void>;
-  isCacheValid: (data: CacheData | null, ttlMs: number, log?: (msg: string) => void) => boolean;
+  isCacheValid: (
+    data: CacheData | null,
+    ttlMs: number,
+    log?: (msg: string) => void,
+  ) => boolean;
   fetchModels: (options?: FetchModelsOptions) => Promise<FetchResult>;
   updateModels: (
     models: OpenRouterModel[],
     configPath?: string,
     log?: (msg: string) => void,
   ) => Promise<{ added: number; skipped: number; removed: number }>;
-  readConfig: (log?: (msg: string) => void) => Promise<Record<string, unknown> | null>;
+  readConfig: (
+    log?: (msg: string) => void,
+  ) => Promise<Record<string, unknown> | null>;
 }
 
 const defaultDeps: SyncDeps = {
@@ -36,20 +47,22 @@ const defaultDeps: SyncDeps = {
   readConfig: (log) => readConfig(undefined, log),
 };
 
-function getApiUrlFromConfig(config: Record<string, unknown> | null): string | undefined {
+function getApiUrlFromConfig(
+  config: Record<string, unknown> | null,
+): string | undefined {
   if (!config) return undefined;
-  
+
   const provider = config.provider as Record<string, unknown> | undefined;
   if (!provider) return undefined;
-  
+
   const openrouter = provider.openrouter as Record<string, unknown> | undefined;
   if (!openrouter) return undefined;
-  
+
   const options = openrouter.options as Record<string, unknown> | undefined;
   if (!options) return undefined;
-  
+
   const apiUrl = options.apiUrl;
-  return typeof apiUrl === 'string' ? apiUrl : undefined;
+  return typeof apiUrl === "string" ? apiUrl : undefined;
 }
 
 export async function performSync(
@@ -97,9 +110,11 @@ export async function performSync(
     const config = await deps.readConfig(log);
     const apiUrl = getApiUrlFromConfig(config);
 
-    const modelsResult = await deps.fetchModels(apiUrl ? { apiUrl, log } : { log });
+    const modelsResult = await deps.fetchModels(
+      apiUrl ? { apiUrl, log } : { log },
+    );
 
-    if ('error' in modelsResult) {
+    if ("error" in modelsResult) {
       client.app.log({
         body: {
           service: SERVICE_NAME,
@@ -135,10 +150,13 @@ export async function performSync(
       },
     });
 
-    await deps.writeCache({
-      models,
-      timestamp: Date.now(),
-    }, log);
+    await deps.writeCache(
+      {
+        models,
+        timestamp: Date.now(),
+      },
+      log,
+    );
 
     client.app.log({
       body: {
@@ -178,12 +196,17 @@ export default async function OpenRouterModelSyncPlugin(ctx: PluginContext) {
       },
     },
   });
-
-  return {
-    "session.created": async () => {
-      performSync(ctx).catch(() => {
-        // Errors are already logged in performSync
-      });
-    },
-  };
+  performSync(ctx).catch((err) => {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    client.app.log({
+      body: {
+        service: SERVICE_NAME,
+        level: "error",
+        message: "Error during model sync",
+        extra: {
+          error: errorMessage,
+        },
+      },
+    });
+  });
 }

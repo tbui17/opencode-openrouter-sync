@@ -1,10 +1,10 @@
 /**
  * File-based caching system for OpenRouter model data
  */
-import { promises as fs } from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import type { CacheData, SyncConfig } from './types';
+import { promises as fs } from "fs";
+import * as path from "node:path";
+import * as os from "os";
+import type { CacheData, SyncConfig } from "./types";
 
 const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -16,18 +16,29 @@ function getDefaultCacheDir(): string {
     // If config is in ~/.config/opencode, cache should be in ~/.local/share/opencode
     // If config is in custom dir, cache should be in {customParent}/share/opencode/openrouter-sync
     const parentDir = path.dirname(configDir);
-    return path.join(parentDir, 'share', 'opencode', 'openrouter-sync');
+    return path.join(parentDir, "share", "opencode", "openrouter-sync");
   }
-  return path.join(os.homedir(), '.local', 'share', 'opencode', 'openrouter-sync');
+  return path.join(
+    os.homedir(),
+    ".local",
+    "share",
+    "opencode",
+    "openrouter-sync",
+  );
 }
 
 const defaultConfig: SyncConfig = {
   cacheDir: getDefaultCacheDir(),
-  cacheFile: 'cache.json',
+  cacheFile: "cache.json",
   cacheTtlMs: DEFAULT_CACHE_TTL_MS,
-  apiEndpoint: 'https://openrouter.ai/api/v1/models',
+  apiEndpoint: "https://openrouter.ai/api/v1/models",
   apiTimeout: 30000,
-  globalConfigPath: path.join(os.homedir(), '.config', 'opencode', 'opencode.json'),
+  globalConfigPath: path.join(
+    os.homedir(),
+    ".config",
+    "opencode",
+    "opencode.json",
+  ),
 };
 
 /**
@@ -44,7 +55,10 @@ export function getCachePath(config?: Partial<SyncConfig>): string {
  * Ensure the cache directory exists
  * @param config - Optional sync configuration override
  */
-async function ensureCacheDir(config?: Partial<SyncConfig>, log?: (msg: string) => void): Promise<void> {
+async function ensureCacheDir(
+  config?: Partial<SyncConfig>,
+  log?: (msg: string) => void,
+): Promise<void> {
   const cfg = { ...defaultConfig, ...config };
   log?.(`Ensuring cache directory exists: ${cfg.cacheDir}`);
   await fs.mkdir(cfg.cacheDir, { recursive: true });
@@ -57,14 +71,18 @@ async function ensureCacheDir(config?: Partial<SyncConfig>, log?: (msg: string) 
  * @param log - Optional logging function
  * @returns true if cache is valid, false otherwise
  */
-export function isCacheValid(cacheData: CacheData | null, ttlMs = DEFAULT_CACHE_TTL_MS, log?: (msg: string) => void): boolean {
+export function isCacheValid(
+  cacheData: CacheData | null,
+  ttlMs = DEFAULT_CACHE_TTL_MS,
+  log?: (msg: string) => void,
+): boolean {
   if (!cacheData) {
-    log?.('Cache data is null, cache invalid');
+    log?.("Cache data is null, cache invalid");
     return false;
   }
 
-  if (!cacheData.timestamp || typeof cacheData.timestamp !== 'number') {
-    log?.('Cache has invalid or missing timestamp');
+  if (!cacheData.timestamp || typeof cacheData.timestamp !== "number") {
+    log?.("Cache has invalid or missing timestamp");
     return false;
   }
 
@@ -74,9 +92,13 @@ export function isCacheValid(cacheData: CacheData | null, ttlMs = DEFAULT_CACHE_
 
   if (valid) {
     const remainingMs = ttlMs - age;
-    log?.(`Cache is valid (age: ${Math.round(age / 1000)}s, expires in: ${Math.round(remainingMs / 1000)}s, models: ${cacheData.models?.length ?? 0})`);
+    log?.(
+      `Cache is valid (age: ${Math.round(age / 1000)}s, expires in: ${Math.round(remainingMs / 1000)}s, models: ${cacheData.models?.length ?? 0})`,
+    );
   } else {
-    log?.(`Cache is expired (age: ${Math.round(age / 1000)}s, ttl: ${Math.round(ttlMs / 1000)}s)`);
+    log?.(
+      `Cache is expired (age: ${Math.round(age / 1000)}s, ttl: ${Math.round(ttlMs / 1000)}s)`,
+    );
   }
 
   return valid;
@@ -88,32 +110,43 @@ export function isCacheValid(cacheData: CacheData | null, ttlMs = DEFAULT_CACHE_
  * @param log - Optional logging function
  * @returns The cached data or null if cache doesn't exist or is invalid
  */
-export async function readCache(config?: Partial<SyncConfig>, log?: (msg: string) => void): Promise<CacheData | null> {
+export async function readCache(
+  config?: Partial<SyncConfig>,
+  log?: (msg: string) => void,
+): Promise<CacheData | null> {
   const cachePath = getCachePath(config);
   log?.(`Reading cache from ${cachePath}`);
 
   try {
-    const data = await fs.readFile(cachePath, 'utf-8');
+    const data = await fs.readFile(cachePath, "utf-8");
     const cacheData: CacheData = JSON.parse(data);
 
     // Validate cache structure
     if (!cacheData.models || !Array.isArray(cacheData.models)) {
-      log?.('Cache file has invalid structure: missing or non-array models field');
+      log?.(
+        "Cache file has invalid structure: missing or non-array models field",
+      );
       return null;
     }
 
-    if (typeof cacheData.timestamp !== 'number') {
-      log?.('Cache file has invalid structure: missing or non-number timestamp');
+    if (typeof cacheData.timestamp !== "number") {
+      log?.(
+        "Cache file has invalid structure: missing or non-number timestamp",
+      );
       return null;
     }
 
-    log?.(`Cache loaded: ${cacheData.models.length} models, timestamp ${new Date(cacheData.timestamp).toISOString()}`);
+    log?.(
+      `Cache loaded: ${cacheData.models.length} models, timestamp ${new Date(cacheData.timestamp).toISOString()}`,
+    );
     return cacheData;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       log?.(`Cache file not found at ${cachePath}`);
     } else {
-      log?.(`Error reading cache file: ${error instanceof Error ? error.message : String(error)}`);
+      log?.(
+        `Error reading cache file: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
     return null;
   }
@@ -125,7 +158,11 @@ export async function readCache(config?: Partial<SyncConfig>, log?: (msg: string
  * @param config - Optional sync configuration override
  * @param log - Optional logging function
  */
-export async function writeCache(cacheData: CacheData, config?: Partial<SyncConfig>, log?: (msg: string) => void): Promise<void> {
+export async function writeCache(
+  cacheData: CacheData,
+  config?: Partial<SyncConfig>,
+  log?: (msg: string) => void,
+): Promise<void> {
   const cachePath = getCachePath(config);
   log?.(`Writing cache to ${cachePath} (${cacheData.models.length} models)`);
 
@@ -136,7 +173,7 @@ export async function writeCache(cacheData: CacheData, config?: Partial<SyncConf
   const tempPath = `${cachePath}.tmp`;
   const data = JSON.stringify(cacheData, null, 2);
 
-  await fs.writeFile(tempPath, data, 'utf-8');
+  await fs.writeFile(tempPath, data, "utf-8");
   await fs.rename(tempPath, cachePath);
   log?.(`Cache written successfully (${data.length} bytes)`);
 }
@@ -147,19 +184,24 @@ export async function writeCache(cacheData: CacheData, config?: Partial<SyncConf
  * @param log - Optional logging function
  * @returns true if cache was cleared, false if no cache existed
  */
-export async function clearCache(config?: Partial<SyncConfig>, log?: (msg: string) => void): Promise<boolean> {
+export async function clearCache(
+  config?: Partial<SyncConfig>,
+  log?: (msg: string) => void,
+): Promise<boolean> {
   const cachePath = getCachePath(config);
   log?.(`Clearing cache at ${cachePath}`);
 
   try {
     await fs.unlink(cachePath);
-    log?.('Cache cleared successfully');
+    log?.("Cache cleared successfully");
     return true;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      log?.('No cache file to clear');
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      log?.("No cache file to clear");
     } else {
-      log?.(`Error clearing cache: ${error instanceof Error ? error.message : String(error)}`);
+      log?.(
+        `Error clearing cache: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
     return false;
   }
