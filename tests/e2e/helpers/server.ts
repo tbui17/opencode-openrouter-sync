@@ -52,7 +52,7 @@ export async function isOpenCodeAvailable(): Promise<boolean> {
  */
 function parsePortFromOutput(output: string): number | null {
   const match = output.match(PORT_REGEX);
-  return match ? Number.parseInt(match[1], 10) : null;
+  return match ? Number.parseInt(match[1]!, 10) : null;
 }
 
 /**
@@ -106,7 +106,7 @@ export async function startOpenCodeServer(
   while (Date.now() - startTime < timeout) {
     if (exitCode !== null) {
       throw new Error(
-        `OpenCode server exited with code ${exitCode} during startup${exitError ? `: ${exitError.message}` : ''}`,
+        `OpenCode server exited with code ${exitCode} during startup${exitError ? `: ${(exitError as Error).message}` : ''}`,
       );
     }
 

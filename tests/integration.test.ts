@@ -287,12 +287,13 @@ describe('Integration Tests - Full Sync Flow', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
-      });
+      }) as unknown as typeof fetch;
 
       // Step 3: Fetch models (mocked)
       const fetchedModelsResult = await fetchModels();
       expect('data' in fetchedModelsResult).toBe(true);
-      const fetchedModels = fetchedModelsResult.data;
+      const fetchedModels = (fetchedModelsResult as { data: OpenRouterModel[] })
+        .data;
 
       // Step 4: Create initial config with one existing model
       const initialConfig = {
@@ -379,11 +380,11 @@ describe('Integration Tests - Full Sync Flow', () => {
             headers: { 'Content-Type': 'application/json' },
           },
         );
-      });
+      }) as unknown as typeof fetch;
 
       const modelsResult = await fetchModels();
       expect('data' in modelsResult).toBe(true);
-      const models = modelsResult.data;
+      const models = (modelsResult as { data: OpenRouterModel[] }).data;
       expect(models).toHaveLength(2);
 
       await writeCache({ models, timestamp: Date.now() }, { cacheDir });
@@ -404,7 +405,7 @@ describe('Integration Tests - Full Sync Flow', () => {
 
       globalThis.fetch = mock(async () => {
         throw new Error('Network unavailable');
-      });
+      }) as unknown as typeof fetch;
 
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
@@ -424,7 +425,7 @@ describe('Integration Tests - Full Sync Flow', () => {
 
         globalThis.fetch = mock(async () => {
           throw new Error('Network error');
-        });
+        }) as unknown as typeof fetch;
 
         const fetchedModelsResult = await fetchModels();
         expect('error' in fetchedModelsResult).toBe(true);
@@ -432,7 +433,7 @@ describe('Integration Tests - Full Sync Flow', () => {
         const cache = await readCache({ cacheDir });
         expect(cache).not.toBeNull();
         expect(cache?.models).toHaveLength(1);
-        expect(cache?.models[0].id).toBe('stale-model');
+        expect(cache!.models[0]!.id).toBe('stale-model');
       });
 
       it('should handle HTTP error responses', async () => {
@@ -441,11 +442,11 @@ describe('Integration Tests - Full Sync Flow', () => {
             status: 500,
             statusText: 'Internal Server Error',
           });
-        });
+        }) as unknown as typeof fetch;
 
         const modelsResult = await fetchModels();
         expect('error' in modelsResult).toBe(true);
-        expect(modelsResult.error.type).toBe('http');
+        expect((modelsResult as any).error.type).toBe('http');
       });
 
       it('should handle invalid JSON response', async () => {
@@ -454,11 +455,11 @@ describe('Integration Tests - Full Sync Flow', () => {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           });
-        });
+        }) as unknown as typeof fetch;
 
         const modelsResult = await fetchModels();
         expect('error' in modelsResult).toBe(true);
-        expect(modelsResult.error.type).toBe('parse');
+        expect((modelsResult as any).error.type).toBe('parse');
       });
 
       it('should handle malformed API response structure', async () => {
@@ -467,11 +468,11 @@ describe('Integration Tests - Full Sync Flow', () => {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           });
-        });
+        }) as unknown as typeof fetch;
 
         const modelsResult = await fetchModels();
         expect('error' in modelsResult).toBe(true);
-        expect(modelsResult.error.type).toBe('validation');
+        expect((modelsResult as any).error.type).toBe('validation');
       });
 
       it('should handle API timeout', async () => {
@@ -479,11 +480,11 @@ describe('Integration Tests - Full Sync Flow', () => {
           const error = new Error('The operation was aborted');
           error.name = 'AbortError';
           throw error;
-        });
+        }) as unknown as typeof fetch;
 
         const modelsResult = await fetchModels();
         expect('error' in modelsResult).toBe(true);
-        expect(modelsResult.error.type).toBe('timeout');
+        expect((modelsResult as any).error.type).toBe('timeout');
       });
     });
 
@@ -670,14 +671,14 @@ describe('Integration Tests - Full Sync Flow', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
-      });
+      }) as unknown as typeof fetch;
 
       const cache = await readCache({ cacheDir });
       expect(cache).toBeNull();
 
       const modelsResult = await fetchModels();
       expect('data' in modelsResult).toBe(true);
-      const models = modelsResult.data;
+      const models = (modelsResult as { data: OpenRouterModel[] }).data;
       expect(models).toHaveLength(3);
 
       await writeCache({ models, timestamp: Date.now() }, { cacheDir });
@@ -716,7 +717,7 @@ describe('Integration Tests - Full Sync Flow', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
-      });
+      }) as unknown as typeof fetch;
 
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
@@ -724,7 +725,7 @@ describe('Integration Tests - Full Sync Flow', () => {
 
       const modelsResult = await fetchModels();
       expect('data' in modelsResult).toBe(true);
-      const models = modelsResult.data;
+      const models = (modelsResult as { data: OpenRouterModel[] }).data;
       expect(models).toHaveLength(2);
 
       await writeCache({ models, timestamp: Date.now() }, { cacheDir });
@@ -746,7 +747,7 @@ describe('Integration Tests - Full Sync Flow', () => {
 
       globalThis.fetch = mock(async () => {
         throw new Error('Network unavailable');
-      });
+      }) as unknown as typeof fetch;
 
       const cache = await readCache({ cacheDir });
       expect(cache).not.toBeNull();
@@ -754,11 +755,11 @@ describe('Integration Tests - Full Sync Flow', () => {
 
       const modelsResult = await fetchModels();
       expect('error' in modelsResult).toBe(true);
-      expect(modelsResult.error.type).toBe('network');
+      expect((modelsResult as any).error.type).toBe('network');
 
       const fallbackCache = await readCache({ cacheDir });
       expect(fallbackCache?.models).toHaveLength(2);
-      expect(fallbackCache?.models[0].id).toBe('cached-model-1');
+      expect(fallbackCache!.models[0]!.id).toBe('cached-model-1');
     });
   });
 });
@@ -970,7 +971,7 @@ describe('performSync file write integration', () => {
   it('should produce model entries conforming to the OpenCode JSON schema', async () => {
     // Extract the model entry schema from src/schema.ts:
     // schema.provider (optional) -> record value -> .models (optional) -> record value
-    const providerRecord = schema.shape.provider.unwrap(); // ZodRecord
+    const providerRecord = (schema as any).shape.provider.unwrap(); // ZodRecord
     const providerObj = providerRecord._def.valueType; // provider object schema
     const modelsRecord = providerObj.shape.models.unwrap(); // ZodRecord
     const openCodeModelSchema = modelsRecord._def.valueType; // model entry schema (.strict())
@@ -1192,7 +1193,7 @@ describe('performSync against real profile', () => {
   let originalContent: string;
 
   // Extract the model entry validator from the schema once
-  const providerRecord = schema.shape.provider.unwrap();
+  const providerRecord = (schema as any).shape.provider.unwrap();
   const providerObj = providerRecord._def.valueType;
   const modelsRecord = providerObj.shape.models.unwrap();
   const openCodeModelSchema = modelsRecord._def.valueType;
@@ -1241,7 +1242,7 @@ describe('performSync against real profile', () => {
         const parseResult = openCodeModelSchema.safeParse(modelEntry);
         if (!parseResult.success) {
           failures.push(
-            `${modelId}: ${parseResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+            `${modelId}: ${parseResult.error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
           );
         }
       }
@@ -1340,7 +1341,7 @@ describe('opencode CLI model list', () => {
   let originalContent: string;
 
   // Extract the model entry validator from the schema once
-  const providerRecord = schema.shape.provider.unwrap();
+  const providerRecord = (schema as any).shape.provider.unwrap();
   const providerObj = providerRecord._def.valueType;
   const modelsRecord = providerObj.shape.models.unwrap();
   const openCodeModelSchema = modelsRecord._def.valueType;

@@ -31,7 +31,9 @@ export interface TuiClient {
   appendPrompt(options: { body: AppendPromptOptions }): Promise<boolean>;
 }
 
-export function createToastBody(options: ToastOptions): { body: ToastOptions } {
+export function createToastBody(options: z.input<typeof ToastOptionsSchema>): {
+  body: ToastOptions;
+} {
   return { body: ToastOptionsSchema.parse(options) };
 }
 

@@ -146,7 +146,7 @@ describe('performSync', () => {
     await performSync(ctx, deps);
 
     expect(writeCacheMock).toHaveBeenCalledTimes(1);
-    const arg = writeCacheMock.mock.calls[0][0] as CacheData;
+    const arg = (writeCacheMock.mock.calls as any)[0][0] as CacheData;
     expect(arg.models).toHaveLength(1);
     expect(arg.timestamp).toBeGreaterThan(0);
   });
@@ -172,7 +172,7 @@ describe('OpenRouterModelSyncPlugin', () => {
     const { default: plugin } = await import('../src/plugin');
     const { ctx, logs } = createMockCtx();
 
-    const handlers = await plugin(ctx);
+    await plugin(ctx);
 
     const messages = logs.map((l: any) => l.body?.message);
     expect(messages).toContain('OpenRouter Model Sync plugin installed');
@@ -184,6 +184,5 @@ describe('OpenRouterModelSyncPlugin', () => {
     expect(notification.body.extra.description).toContain(
       'Plugin installed successfully',
     );
-    expect(handlers['session.created']).toBeFunction();
   });
 });

@@ -183,6 +183,14 @@ export interface OpenCodeModelEntry {
   options?: Record<string, unknown>;
   variants?: Record<string, unknown>;
   status?: string;
+  /** Maximum number of completion tokens from the top provider */
+  max_completion_tokens?: number;
+  /** List of supported API parameters (e.g., 'temperature', 'tools') */
+  supported_parameters?: string[];
+  /** Whether the model is moderated by the provider */
+  is_moderated?: boolean;
+  /** Default parameter values for the model (null means unset) */
+  default_parameters?: Record<string, number | null>;
 }
 
 /**
