@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.8.0...v1.8.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* use npm install in publish workflow ([#20](https://github.com/tbui17/opencode-openrouter-sync/issues/20)) ([a45b62f](https://github.com/tbui17/opencode-openrouter-sync/commit/a45b62fef0c5e7c350a1885ddef27cb02736dbe8))
+
 ## [1.8.0](https://github.com/tbui17/opencode-openrouter-sync/compare/v1.7.0...v1.8.0) (2026-03-18)
 
 
