@@ -1,0 +1,7 @@
+`import($module)` where {
+  register_diagnostic(
+    span=$module,
+    message="Lazy imports (dynamic import()) are not allowed. Use static imports instead.",
+    severity="warn"
+  )
+}
